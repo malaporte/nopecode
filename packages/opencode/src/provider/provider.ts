@@ -708,11 +708,15 @@ export namespace Provider {
     const disabled = new Set(config.disabled_providers ?? [])
     const enabled = config.enabled_providers ? new Set(config.enabled_providers) : null
 
+    const allowedModelPrefixes = ["claude-", "gemini-", "gpt-"]
     function isProviderAllowed(providerID: string): boolean {
       if (providerID !== "github-copilot") return false
       if (enabled && !enabled.has(providerID)) return false
       if (disabled.has(providerID)) return false
       return true
+    }
+    function isModelAllowed(modelID: string): boolean {
+      return allowedModelPrefixes.some((prefix) => modelID.startsWith(prefix))
     }
 
     const providers: { [providerID: string]: Info } = {}
@@ -945,6 +949,7 @@ export namespace Provider {
           delete provider.models[modelID]
         if (model.status === "alpha" && !Flag.OPENCODE_ENABLE_EXPERIMENTAL_MODELS) delete provider.models[modelID]
         if (model.status === "deprecated") delete provider.models[modelID]
+        if (!isModelAllowed(modelID)) delete provider.models[modelID]
         if (
           (configProvider?.blacklist && configProvider.blacklist.includes(modelID)) ||
           (configProvider?.whitelist && !configProvider.whitelist.includes(modelID))
