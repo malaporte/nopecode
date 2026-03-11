@@ -4,7 +4,6 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
-import type { IconName } from "@opencode-ai/ui/icons/provider"
 import { List, type ListRef } from "@opencode-ai/ui/list"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { Spinner } from "@opencode-ai/ui/spinner"
@@ -103,6 +102,24 @@ export function DialogConnectProvider(props: { provider: string }) {
     return value.label ?? ""
   }
 
+  function formatError(value: unknown, fallback: string): string {
+    if (value && typeof value === "object" && "data" in value) {
+      const data = (value as { data?: { message?: unknown } }).data
+      if (typeof data?.message === "string" && data.message) return data.message
+    }
+    if (value && typeof value === "object" && "error" in value) {
+      const nested = formatError((value as { error?: unknown }).error, "")
+      if (nested) return nested
+    }
+    if (value && typeof value === "object" && "message" in value) {
+      const message = (value as { message?: unknown }).message
+      if (typeof message === "string" && message) return message
+    }
+    if (value instanceof Error && value.message) return value.message
+    if (typeof value === "string" && value) return value
+    return fallback
+  }
+
   async function selectMethod(index: number) {
     if (timer.current !== undefined) {
       clearTimeout(timer.current)
@@ -141,7 +158,7 @@ export function DialogConnectProvider(props: { provider: string }) {
         })
         .catch((e) => {
           if (!alive.value) return
-          dispatch({ type: "auth.error", error: String(e) })
+          dispatch({ type: "auth.error", error: formatError(e, language.t("common.requestFailed")) })
         })
     }
   }
@@ -328,8 +345,7 @@ export function DialogConnectProvider(props: { provider: string }) {
         await complete()
         return
       }
-      const message = result.error instanceof Error ? result.error.message : String(result.error)
-      setFormStore("error", message || language.t("provider.connect.oauth.code.invalid"))
+      setFormStore("error", formatError(result.error, language.t("provider.connect.oauth.code.invalid")))
     }
 
     return (
@@ -385,7 +401,7 @@ export function DialogConnectProvider(props: { provider: string }) {
         if (!alive.value) return
 
         if (!result.ok) {
-          const message = result.error instanceof Error ? result.error.message : String(result.error)
+          const message = formatError(result.error, language.t("common.requestFailed"))
           dispatch({ type: "auth.error", error: message })
           return
         }
@@ -430,7 +446,7 @@ export function DialogConnectProvider(props: { provider: string }) {
     >
       <div class="flex flex-col gap-6 px-2.5 pb-3">
         <div class="px-2.5 flex gap-4 items-center">
-          <ProviderIcon id={props.provider as IconName} class="size-5 shrink-0 icon-strong-base" />
+          <ProviderIcon id={props.provider} class="size-5 shrink-0 icon-strong-base" />
           <div class="text-16-medium text-text-strong">
             <Switch>
               <Match when={props.provider === "anthropic" && method()?.label?.toLowerCase().includes("max")}>

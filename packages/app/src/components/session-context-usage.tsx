@@ -1,5 +1,5 @@
 import { Match, Show, Switch, createMemo } from "solid-js"
-import { Tooltip } from "@opencode-ai/ui/tooltip"
+import { Tooltip, type TooltipProps } from "@opencode-ai/ui/tooltip"
 import { ProgressCircle } from "@opencode-ai/ui/progress-circle"
 import { Button } from "@opencode-ai/ui/button"
 import { useParams } from "@solidjs/router"
@@ -11,6 +11,7 @@ import { getSessionContextMetrics } from "@/components/session/session-context-m
 
 interface SessionContextUsageProps {
   variant?: "button" | "indicator"
+  placement?: TooltipProps["placement"]
 }
 
 function openSessionContext(args: {
@@ -19,8 +20,7 @@ function openSessionContext(args: {
   tabs: ReturnType<ReturnType<typeof useLayout>["tabs"]>
 }) {
   if (!args.view.reviewPanel.opened()) args.view.reviewPanel.open()
-  args.layout.fileTree.open()
-  args.layout.fileTree.setTab("all")
+  if (args.layout.fileTree.opened() && args.layout.fileTree.tab() !== "all") args.layout.fileTree.setTab("all")
   args.tabs.open("context")
   args.tabs.setActive("context")
 }
@@ -39,7 +39,7 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
 
   const usd = createMemo(
     () =>
-      new Intl.NumberFormat(language.locale(), {
+      new Intl.NumberFormat(language.intl(), {
         style: "currency",
         currency: "USD",
       }),
@@ -53,6 +53,11 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
 
   const openContext = () => {
     if (!params.id) return
+
+    if (tabs().active() === "context") {
+      tabs().close("context")
+      return
+    }
     openSessionContext({
       view: view(),
       layout,
@@ -72,7 +77,7 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
         {(ctx) => (
           <>
             <div class="flex items-center gap-2">
-              <span class="text-text-invert-strong">{ctx().total.toLocaleString(language.locale())}</span>
+              <span class="text-text-invert-strong">{ctx().total.toLocaleString(language.intl())}</span>
               <span class="text-text-invert-base">{language.t("context.usage.tokens")}</span>
             </div>
             <div class="flex items-center gap-2">
@@ -91,7 +96,7 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
 
   return (
     <Show when={params.id}>
-      <Tooltip value={tooltipValue()} placement="top">
+      <Tooltip value={tooltipValue()} placement={props.placement ?? "top"}>
         <Switch>
           <Match when={variant() === "indicator"}>{circle()}</Match>
           <Match when={true}>
