@@ -81,6 +81,8 @@ jobs:
       - release
     if: github.repository == 'malaporte/nopecode'
     runs-on: ${{ matrix.settings.host }}
+    env:
+      HAS_APPLE_API: ${{ secrets.APPLE_API_KEY != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_API_KEY_PATH != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -115,7 +117,7 @@ jobs:
           echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
 
       - name: Setup Apple API key
-        if: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_API_KEY_PATH != '' }}
+        if: ${{ runner.os == 'macOS' && env.HAS_APPLE_API == 'true' }}
         run: echo "${{ secrets.APPLE_API_KEY_PATH }}" > "$RUNNER_TEMP/apple-api-key.p8"
 
       - uses: ./.github/actions/setup-bun
@@ -201,7 +203,7 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ env.CERT_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_PATH != '' && format('{0}/apple-api-key.p8', runner.temp) || '' }}
+          APPLE_API_KEY_PATH: ${{ env.HAS_APPLE_API == 'true' && format('{0}/apple-api-key.p8', runner.temp) || '' }}
 
   build-electron:
     needs:
@@ -209,6 +211,8 @@ jobs:
       - release
     if: github.repository == 'malaporte/nopecode'
     runs-on: ${{ matrix.settings.host }}
+    env:
+      HAS_APPLE_API: ${{ secrets.APPLE_API_KEY != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_API_KEY_PATH != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -241,7 +245,7 @@ jobs:
           p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
 
       - name: Setup Apple API key
-        if: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_API_KEY_PATH != '' }}
+        if: ${{ runner.os == 'macOS' && env.HAS_APPLE_API == 'true' }}
         run: echo "${{ secrets.APPLE_API_KEY_PATH }}" > "$RUNNER_TEMP/apple-api-key.p8"
 
       - uses: ./.github/actions/setup-bun
@@ -294,7 +298,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_PATH != '' && format('{0}/apple-api-key.p8', runner.temp) || '' }}
+          APPLE_API_KEY: ${{ env.HAS_APPLE_API == 'true' && format('{0}/apple-api-key.p8', runner.temp) || '' }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
 
