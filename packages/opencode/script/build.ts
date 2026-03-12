@@ -202,7 +202,12 @@ for (const item of targets) {
   })
 
   if (process.platform === "darwin" && item.os === "darwin") {
-    await $`codesign -s - --force dist/${name}/bin/nopecode`
+    const identity = process.env.MACOS_SIGNING_IDENTITY || process.env.APPLE_SIGNING_IDENTITY || "-"
+    if (identity === "-") {
+      await $`codesign -s - --force dist/${name}/bin/nopecode`
+    } else {
+      await $`codesign --sign ${identity} --force --options runtime --timestamp dist/${name}/bin/nopecode`
+    }
   }
 
   await $`rm -rf ./dist/${name}/bin/tui`

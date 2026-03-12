@@ -60,7 +60,29 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
+      - uses: apple-actions/import-codesign-certs@v2
+        with:
+          keychain: build
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+      - name: Resolve signing identity
+        run: |
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
+          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          echo "CERT_ID=$CERT_ID" >> "$GITHUB_ENV"
+
       - uses: ./.github/actions/setup-bun
+
+      - name: Remove existing CLI release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view ${{ needs.release.outputs.tag }} --repo ${{ needs.release.outputs.repo }} --json assets |
+            jq -r '.assets[].name | select(test("^(opencode|nopecode)-(darwin|linux|windows)-"))' |
+            while read -r name; do
+              gh release delete-asset ${{ needs.release.outputs.tag }} "$name" --repo ${{ needs.release.outputs.repo }} --yes || true
+            done
 
       - name: Build
         run: ./packages/opencode/script/build.ts
@@ -69,6 +91,7 @@ jobs:
           OPENCODE_RELEASE: ${{ needs.release.outputs.release }}
           GH_REPO: ${{ needs.release.outputs.repo }}
           GH_TOKEN: ${{ github.token }}
+          MACOS_SIGNING_IDENTITY: ${{ env.CERT_ID }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -108,6 +131,13 @@ jobs:
           keychain: build
           p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
           p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+      - name: Resolve signing identity
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
+          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          echo "CERT_ID=$CERT_ID" >> "$GITHUB_ENV"
 
       - name: Setup Apple API key
         if: ${{ runner.os == 'macOS' && env.HAS_APPLE_API == 'true' }}
@@ -204,6 +234,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ env.CERT_ID }}
 
   build-electron:
     needs:
@@ -248,6 +279,13 @@ jobs:
           keychain: build
           p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
           p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+      - name: Resolve signing identity
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
+          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          echo "CERT_ID=$CERT_ID" >> "$GITHUB_ENV"
 
       - name: Setup Apple API key
         if: ${{ runner.os == 'macOS' && env.HAS_APPLE_API == 'true' }}
@@ -319,6 +357,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          CSC_NAME: ${{ env.CERT_ID }}
 
       - uses: actions/upload-artifact@v4
         with:
