@@ -26,6 +26,8 @@ jobs:
       repo: ${{ steps.release.outputs.repo }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - uses: ./.github/actions/setup-bun
 
@@ -56,7 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-tags: true
+          ref: ${{ github.sha }}
 
       - uses: ./.github/actions/setup-bun
 
@@ -96,7 +98,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-tags: true
+          ref: ${{ github.sha }}
 
       - uses: apple-actions/import-codesign-certs@v2
         if: ${{ runner.os == 'macOS' }}
@@ -228,6 +230,8 @@ jobs:
             platform_flag: --linux
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - uses: apple-actions/import-codesign-certs@v2
         if: runner.os == 'macOS'
@@ -314,6 +318,8 @@ jobs:
     if: github.repository == 'malaporte/nopecode'
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - uses: ./.github/actions/setup-bun
 
