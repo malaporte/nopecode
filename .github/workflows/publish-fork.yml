@@ -115,7 +115,7 @@ jobs:
           echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
 
       - name: Setup Apple API key
-        if: ${{ runner.os == 'macOS' }}
+        if: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_API_KEY_PATH != '' }}
         run: echo "${{ secrets.APPLE_API_KEY_PATH }}" > "$RUNNER_TEMP/apple-api-key.p8"
 
       - uses: ./.github/actions/setup-bun
@@ -201,7 +201,7 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ env.CERT_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_PATH: ${{ runner.temp }}/apple-api-key.p8
+          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_PATH != '' && format('{0}/apple-api-key.p8', runner.temp) || '' }}
 
   build-electron:
     needs:
@@ -241,7 +241,7 @@ jobs:
           p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
 
       - name: Setup Apple API key
-        if: runner.os == 'macOS'
+        if: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_API_KEY_PATH != '' }}
         run: echo "${{ secrets.APPLE_API_KEY_PATH }}" > "$RUNNER_TEMP/apple-api-key.p8"
 
       - uses: ./.github/actions/setup-bun
@@ -294,7 +294,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_API_KEY: ${{ runner.temp }}/apple-api-key.p8
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_PATH != '' && format('{0}/apple-api-key.p8', runner.temp) || '' }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
 

@@ -6,6 +6,8 @@ const channel = (() => {
   return "dev"
 })()
 
+const notarize = Boolean(process.env.APPLE_API_KEY && process.env.APPLE_API_KEY_ID && process.env.APPLE_API_ISSUER)
+
 function repo() {
   const raw = process.env.OPENCODE_GH_REPO
   if (!raw) return
@@ -40,7 +42,7 @@ const getBase = (): Configuration => ({
     gatekeeperAssess: false,
     entitlements: "resources/entitlements.plist",
     entitlementsInherit: "resources/entitlements.plist",
-    notarize: true,
+    notarize,
     target: ["dmg", "zip"],
   },
   dmg: {
