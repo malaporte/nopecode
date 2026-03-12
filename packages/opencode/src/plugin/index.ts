@@ -12,6 +12,7 @@ import { Session } from "../session"
 import { NamedError } from "@opencode-ai/util/error"
 import { CopilotAuthPlugin } from "./copilot"
 import { gitlabAuthPlugin as GitlabAuthPlugin } from "@gitlab/opencode-gitlab-auth"
+import { TuiEvent } from "@/cli/cmd/tui/event"
 
 export namespace Plugin {
   const log = Log.create({ service: "plugin" })
@@ -48,8 +49,16 @@ export namespace Plugin {
       if (init) hooks.push(init)
     }
 
-    let plugins = config.plugin ?? []
-    if (plugins.length) await Config.waitForDependencies()
+    if ((config.plugin ?? []).length) {
+      log.warn("ignoring custom plugins", { plugins: config.plugin })
+      await Bus.publish(TuiEvent.ToastShow, {
+        title: "Plugins ignored",
+        message: "Custom plugins are disabled in this build and configured plugins will be ignored.",
+        variant: "warning",
+      })
+    }
+
+    let plugins: string[] = []
     if (!Flag.OPENCODE_DISABLE_DEFAULT_PLUGINS) {
       plugins = [...BUILTIN, ...plugins]
     }

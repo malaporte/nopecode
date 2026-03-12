@@ -678,6 +678,19 @@ function App() {
   ])
 
   createEffect(() => {
+    if (sync.status !== "complete") return
+    if (kv.get("plugins_ignored_warning", false)) return
+    if (!(sync.data.config.plugin ?? []).length) return
+    untrack(() => {
+      DialogAlert.show(
+        dialog,
+        "Plugins ignored",
+        "Custom plugins are disabled in this build and configured plugins will be ignored.",
+      ).then(() => kv.set("plugins_ignored_warning", true))
+    })
+  })
+
+  createEffect(() => {
     const currentModel = local.model.current()
     if (!currentModel) return
     if (currentModel.providerID === "openrouter" && !kv.get("openrouter_warning", false)) {
