@@ -53,7 +53,7 @@ jobs:
 
   build-cli:
     needs: release
-    runs-on: ubuntu-24.04
+    runs-on: macos-latest
     if: github.repository == 'malaporte/nopecode'
     steps:
       - uses: actions/checkout@v4
