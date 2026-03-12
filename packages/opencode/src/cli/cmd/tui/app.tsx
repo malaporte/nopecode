@@ -359,6 +359,52 @@ function App() {
   const connected = useConnected()
   command.register(() => [
     {
+      title: "Update nopecode",
+      value: "app.update",
+      category: "Application",
+      slash: {
+        name: "update",
+        aliases: ["upgrade"],
+      },
+      onSelect: async () => {
+        const method = await Installation.method()
+        if (method === "unknown") {
+          toast.show({
+            message: "Update is only available for supported install methods",
+            variant: "warning",
+          })
+          return
+        }
+        const latest = await Installation.latest(method).catch(() => undefined)
+        if (!latest) {
+          toast.show({
+            message: "Failed to check for updates",
+            variant: "error",
+          })
+          return
+        }
+        if (Installation.VERSION === latest) {
+          toast.show({
+            message: `Already on ${latest}`,
+            variant: "info",
+          })
+          return
+        }
+        const err = await Installation.upgrade(method, latest).catch((err) => err)
+        if (err) {
+          toast.show({
+            message: err instanceof Error ? err.message : "Update failed",
+            variant: "error",
+          })
+          return
+        }
+        toast.show({
+          message: `Updated to ${latest}. Restart nopecode to use it.`,
+          variant: "success",
+        })
+      },
+    },
+    {
       title: "Switch session",
       value: "session.list",
       keybind: "session_list",
