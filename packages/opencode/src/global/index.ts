@@ -5,10 +5,11 @@ import os from "os"
 import { Filesystem } from "../util/filesystem"
 
 const app = "opencode"
+const cfg = "nopecode"
 
 const data = path.join(xdgData!, app)
 const cache = path.join(xdgCache!, app)
-const config = path.join(xdgConfig!, app)
+const config = path.join(xdgConfig!, cfg)
 const state = path.join(xdgState!, app)
 
 export namespace Global {

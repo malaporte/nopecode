@@ -11,27 +11,27 @@ export function resolveChannel(): Channel {
 export const SIDECAR_BINARIES: Array<{ rustTarget: string; ocBinary: string; assetExt: string }> = [
   {
     rustTarget: "aarch64-apple-darwin",
-    ocBinary: "opencode-darwin-arm64",
+    ocBinary: "nopecode-darwin-arm64",
     assetExt: "zip",
   },
   {
     rustTarget: "x86_64-apple-darwin",
-    ocBinary: "opencode-darwin-x64-baseline",
+    ocBinary: "nopecode-darwin-x64-baseline",
     assetExt: "zip",
   },
   {
     rustTarget: "x86_64-pc-windows-msvc",
-    ocBinary: "opencode-windows-x64-baseline",
+    ocBinary: "nopecode-windows-x64-baseline",
     assetExt: "zip",
   },
   {
     rustTarget: "x86_64-unknown-linux-gnu",
-    ocBinary: "opencode-linux-x64-baseline",
+    ocBinary: "nopecode-linux-x64-baseline",
     assetExt: "tar.gz",
   },
   {
     rustTarget: "aarch64-unknown-linux-gnu",
-    ocBinary: "opencode-linux-arm64",
+    ocBinary: "nopecode-linux-arm64",
     assetExt: "tar.gz",
   },
 ]
@@ -56,7 +56,7 @@ export function getCurrentSidecar(target = RUST_TARGET ?? nativeTarget()) {
 export async function copyBinaryToSidecarFolder(source: string) {
   const dir = `resources`
   await $`mkdir -p ${dir}`
-  const dest = windowsify(`${dir}/opencode-cli`)
+  const dest = windowsify(`${dir}/nopecode-cli`)
   await $`cp ${source} ${dest}`
   if (process.platform === "darwin") await $`codesign --force --sign - ${dest}`
 

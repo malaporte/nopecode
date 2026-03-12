@@ -148,13 +148,18 @@ if (!skipInstall) {
   await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
 }
 for (const item of targets) {
-  const name = [
-    pkg.name,
-    // changing to win32 flags npm for some reason
+  const base = [
     item.os === "win32" ? "windows" : item.os,
     item.arch,
     item.avx2 === false ? "baseline" : undefined,
     item.abi === undefined ? undefined : item.abi,
+  ]
+    .filter(Boolean)
+    .join("-")
+  const name = [
+    "nopecode",
+    // changing to win32 flags npm for some reason
+    base,
   ]
     .filter(Boolean)
     .join("-")
@@ -180,8 +185,8 @@ for (const item of targets) {
       autoloadDotenv: false,
       autoloadTsconfig: true,
       autoloadPackageJson: true,
-      target: name.replace(pkg.name, "bun") as any,
-      outfile: `dist/${name}/bin/opencode`,
+      target: `bun-${base}` as any,
+      outfile: `dist/${name}/bin/nopecode`,
       execArgv: [`--user-agent=opencode/${Script.version}`, "--use-system-ca", "--"],
       windows: {},
     },
@@ -197,7 +202,7 @@ for (const item of targets) {
   })
 
   if (process.platform === "darwin" && item.os === "darwin") {
-    await $`codesign -s - --force dist/${name}/bin/opencode`
+    await $`codesign -s - --force dist/${name}/bin/nopecode`
   }
 
   await $`rm -rf ./dist/${name}/bin/tui`

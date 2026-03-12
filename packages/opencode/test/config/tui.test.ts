@@ -40,6 +40,26 @@ test("loads tui config with the same precedence order as server config paths", a
   })
 })
 
+test("does not load global tui config from the legacy opencode directory", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      const root = path.dirname(Global.Path.config)
+      const legacy = path.join(root, "opencode")
+      await fs.mkdir(legacy, { recursive: true })
+      await Bun.write(path.join(legacy, "tui.json"), JSON.stringify({ theme: "legacy" }, null, 2))
+      await Bun.write(path.join(dir, "tui.json"), JSON.stringify({ theme: "project" }, null, 2))
+    },
+  })
+
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const cfg = await TuiConfig.get()
+      expect(cfg.theme).toBe("project")
+    },
+  })
+})
+
 test("migrates tui-specific keys from opencode.json when tui.json does not exist", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
