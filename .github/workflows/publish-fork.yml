@@ -112,8 +112,10 @@ jobs:
       - name: Verify certificate
         if: ${{ runner.os == 'macOS' }}
         run: |
-          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
+          KEYCHAIN=$(security default-keychain | tr -d '"')
+          CERT_INFO=$(security find-identity -v -p codesigning "$KEYCHAIN" | grep "Developer ID Application" | head -n1)
           CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          [ -n "$CERT_ID" ]
           echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
 
       - name: Setup Apple API key
