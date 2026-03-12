@@ -4,6 +4,21 @@
 - Local `main` ref may not exist; use `dev` or `origin/dev` for diffs.
 - Prefer automation: execute requested actions without confirmation unless blocked by missing info or safety/irreversibility.
 
+## Branch Notes
+
+- This branch is a forked build named `nopecode`, not stock OpenCode. Preserve fork-specific naming and isolation changes unless explicitly asked to revert them.
+- Global config root is `~/.config/nopecode`. Installed CLI path is `~/.nopecode/bin/nopecode`. Release CLI assets are named `nopecode-*`.
+- Project-local config conventions are intentionally unchanged and still use upstream names like `.opencode` and `opencode.json`.
+- Provider policy is branch-specific:
+  - only `openai` and `github-copilot` are allowed
+  - `providers login` must not surface blocked providers
+  - `github-copilot` models must exclude Grok variants
+- Custom plugins are intentionally disabled in this branch. Preserve the loader-side block and the user-facing warning for ignored configured plugins.
+- This branch includes a built-in notification plugin as an internal plugin. Prefer keeping notification behavior inside built-ins rather than reopening support for custom plugins.
+- CLI autoupdate is intentionally disabled by default in this fork to avoid self-overwriting with older published releases. Manual TUI update remains available via `/update` and `/upgrade`.
+- Fork release CI lives in `.github/workflows/publish-fork.yml` and targets `malaporte/nopecode`. Keep upstream publish workflow behavior separate to reduce merge conflict risk.
+- macOS signing in the fork currently tolerates non-Developer-ID fallback for semi-usable assets. Be careful not to reintroduce strict signing assumptions unless the cert setup changes.
+
 ## Style Guide
 
 ### General Principles
