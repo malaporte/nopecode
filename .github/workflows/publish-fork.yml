@@ -113,6 +113,13 @@ jobs:
         if: ${{ runner.os == 'macOS' && env.HAS_APPLE_API == 'true' }}
         run: echo "${{ secrets.APPLE_API_KEY_PATH }}" > "$RUNNER_TEMP/apple-api-key.p8"
 
+      - name: Export Apple API env
+        if: ${{ runner.os == 'macOS' && env.HAS_APPLE_API == 'true' }}
+        run: |
+          echo "APPLE_API_ISSUER=${{ secrets.APPLE_API_ISSUER }}" >> "$GITHUB_ENV"
+          echo "APPLE_API_KEY=${{ secrets.APPLE_API_KEY }}" >> "$GITHUB_ENV"
+          echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/apple-api-key.p8" >> "$GITHUB_ENV"
+
       - uses: ./.github/actions/setup-bun
 
       - uses: actions/setup-node@v4
@@ -193,9 +200,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_PATH: ${{ env.HAS_APPLE_API == 'true' && format('{0}/apple-api-key.p8', runner.temp) || '' }}
 
   build-electron:
     needs:
@@ -212,18 +216,23 @@ jobs:
           - host: macos-latest
             target: x86_64-apple-darwin
             platform_flag: --mac --x64
+            assets: opencode-electron-mac-x64.dmg,opencode-electron-mac-x64.dmg.blockmap,opencode-electron-mac-x64.zip,opencode-electron-mac-x64.zip.blockmap
           - host: macos-latest
             target: aarch64-apple-darwin
             platform_flag: --mac --arm64
+            assets: opencode-electron-mac-arm64.dmg,opencode-electron-mac-arm64.dmg.blockmap,opencode-electron-mac-arm64.zip,opencode-electron-mac-arm64.zip.blockmap
           - host: windows-2025
             target: x86_64-pc-windows-msvc
             platform_flag: --win
+            assets: opencode-electron-win-x64.exe,opencode-electron-win-x64.exe.blockmap
           - host: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             platform_flag: --linux
+            assets: opencode-electron-linux-x86_64.AppImage,opencode-electron-linux-amd64.deb,opencode-electron-linux-x86_64.rpm
           - host: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             platform_flag: --linux
+            assets: opencode-electron-linux-arm64.AppImage,opencode-electron-linux-arm64.deb,opencode-electron-linux-aarch64.rpm
     steps:
       - uses: actions/checkout@v4
         with:
@@ -239,6 +248,13 @@ jobs:
       - name: Setup Apple API key
         if: ${{ runner.os == 'macOS' && env.HAS_APPLE_API == 'true' }}
         run: echo "${{ secrets.APPLE_API_KEY_PATH }}" > "$RUNNER_TEMP/apple-api-key.p8"
+
+      - name: Export Apple API env
+        if: ${{ runner.os == 'macOS' && env.HAS_APPLE_API == 'true' }}
+        run: |
+          echo "APPLE_API_KEY=$RUNNER_TEMP/apple-api-key.p8" >> "$GITHUB_ENV"
+          echo "APPLE_API_KEY_ID=${{ secrets.APPLE_API_KEY }}" >> "$GITHUB_ENV"
+          echo "APPLE_API_ISSUER=${{ secrets.APPLE_API_ISSUER }}" >> "$GITHUB_ENV"
 
       - uses: ./.github/actions/setup-bun
 
@@ -280,6 +296,14 @@ jobs:
         env:
           OPENCODE_CHANNEL: prod
 
+      - name: Remove existing release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for name in $(echo "${{ matrix.settings.assets }}" | tr ',' ' '); do
+            gh release delete-asset ${{ needs.release.outputs.tag }} "$name" --repo ${{ needs.release.outputs.repo }} --yes 2>/dev/null || true
+          done
+
       - name: Package and publish
         run: npx electron-builder ${{ matrix.settings.platform_flag }} --publish always --config electron-builder.config.ts
         working-directory: packages/desktop-electron
@@ -290,9 +314,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_API_KEY: ${{ env.HAS_APPLE_API == 'true' && format('{0}/apple-api-key.p8', runner.temp) || '' }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
 
       - uses: actions/upload-artifact@v4
         with:
