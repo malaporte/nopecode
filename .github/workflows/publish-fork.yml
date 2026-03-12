@@ -68,8 +68,14 @@ jobs:
 
       - name: Resolve signing identity
         run: |
-          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
-          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          CERT_INFO=$(
+            security find-identity -v -p codesigning build.keychain |
+              grep "Developer ID Application" ||
+              security find-identity -v -p codesigning build.keychain |
+                grep "Apple Development" ||
+              true
+          )
+          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}' | head -n1)
           echo "CERT_ID=$CERT_ID" >> "$GITHUB_ENV"
 
       - uses: ./.github/actions/setup-bun
@@ -135,8 +141,14 @@ jobs:
       - name: Resolve signing identity
         if: ${{ runner.os == 'macOS' }}
         run: |
-          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
-          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          CERT_INFO=$(
+            security find-identity -v -p codesigning build.keychain |
+              grep "Developer ID Application" ||
+              security find-identity -v -p codesigning build.keychain |
+                grep "Apple Development" ||
+              true
+          )
+          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}' | head -n1)
           echo "CERT_ID=$CERT_ID" >> "$GITHUB_ENV"
 
       - name: Setup Apple API key
@@ -283,8 +295,14 @@ jobs:
       - name: Resolve signing identity
         if: ${{ runner.os == 'macOS' }}
         run: |
-          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
-          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          CERT_INFO=$(
+            security find-identity -v -p codesigning build.keychain |
+              grep "Developer ID Application" ||
+              security find-identity -v -p codesigning build.keychain |
+                grep "Apple Development" ||
+              true
+          )
+          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}' | head -n1)
           echo "CERT_ID=$CERT_ID" >> "$GITHUB_ENV"
 
       - name: Setup Apple API key
