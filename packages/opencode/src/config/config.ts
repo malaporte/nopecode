@@ -1046,6 +1046,13 @@ export namespace Config {
         .describe(
           "Automatically update to the latest version. Set to true to auto-update, false to disable, or 'notify' to show update notifications",
         ),
+      notify: z
+        .object({
+          enabled: z.boolean().optional(),
+          sound: z.boolean().optional(),
+        })
+        .optional()
+        .describe("Built-in OS notifications for session completion and errors"),
       disabled_providers: z.array(z.string()).optional().describe("Disable providers that are loaded automatically"),
       enabled_providers: z
         .array(z.string())

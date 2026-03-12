@@ -13,6 +13,7 @@ import { NamedError } from "@opencode-ai/util/error"
 import { CopilotAuthPlugin } from "./copilot"
 import { gitlabAuthPlugin as GitlabAuthPlugin } from "@gitlab/opencode-gitlab-auth"
 import { TuiEvent } from "@/cli/cmd/tui/event"
+import { NotifyPlugin } from "./notify"
 
 export namespace Plugin {
   const log = Log.create({ service: "plugin" })
@@ -20,7 +21,7 @@ export namespace Plugin {
   const BUILTIN = ["opencode-anthropic-auth@0.0.13"]
 
   // Built-in plugins that are directly imported (not installed from npm)
-  const INTERNAL_PLUGINS: PluginInstance[] = [CodexAuthPlugin, CopilotAuthPlugin, GitlabAuthPlugin]
+  const INTERNAL_PLUGINS: PluginInstance[] = [CodexAuthPlugin, CopilotAuthPlugin, GitlabAuthPlugin, NotifyPlugin]
 
   const state = Instance.state(async () => {
     const client = createOpencodeClient({
@@ -110,6 +111,7 @@ export namespace Plugin {
     return {
       hooks,
       input,
+      init: false,
     }
   })
 
@@ -135,7 +137,10 @@ export namespace Plugin {
   }
 
   export async function init() {
-    const hooks = await state().then((x) => x.hooks)
+    const current = await state()
+    if (current.init) return
+    current.init = true
+    const hooks = current.hooks
     const config = await Config.get()
     for (const hook of hooks) {
       // @ts-expect-error this is because we haven't moved plugin to sdk v2
