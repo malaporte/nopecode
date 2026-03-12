@@ -6,6 +6,14 @@ const channel = (() => {
   return "dev"
 })()
 
+function repo() {
+  const raw = process.env.OPENCODE_GH_REPO
+  if (!raw) return
+  const [owner, name] = raw.split("/")
+  if (!owner || !name) return
+  return { owner, repo: name }
+}
+
 const getBase = (): Configuration => ({
   artifactName: "opencode-electron-${os}-${arch}.${ext}",
   directories: {
@@ -72,22 +80,24 @@ function getConfig() {
       }
     }
     case "beta": {
+      const target = repo() ?? { owner: "anomalyco", repo: "opencode-beta" }
       return {
         ...base,
         appId: "ai.opencode.desktop.beta",
         productName: "OpenCode Beta",
         protocols: { name: "OpenCode Beta", schemes: ["opencode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode-beta", channel: "latest" },
+        publish: { provider: "github", owner: target.owner, repo: target.repo, channel: "latest" },
         rpm: { packageName: "opencode-beta" },
       }
     }
     case "prod": {
+      const target = repo() ?? { owner: "anomalyco", repo: "opencode" }
       return {
         ...base,
         appId: "ai.opencode.desktop",
         productName: "OpenCode",
         protocols: { name: "OpenCode", schemes: ["opencode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode", channel: "latest" },
+        publish: { provider: "github", owner: target.owner, repo: target.repo, channel: "latest" },
         rpm: { packageName: "opencode" },
       }
     }
