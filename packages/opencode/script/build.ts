@@ -202,10 +202,8 @@ for (const item of targets) {
   })
 
   if (process.platform === "darwin" && item.os === "darwin") {
-    const identity = process.env.MACOS_SIGNING_IDENTITY || process.env.APPLE_SIGNING_IDENTITY || "-"
-    if (identity === "-") {
-      await $`codesign -s - --force dist/${name}/bin/nopecode`
-    } else {
+    const identity = process.env.MACOS_SIGNING_IDENTITY || process.env.APPLE_SIGNING_IDENTITY
+    if (identity?.includes("Developer ID Application")) {
       await $`codesign --sign ${identity} --force --options runtime --timestamp dist/${name}/bin/nopecode`
     }
   }

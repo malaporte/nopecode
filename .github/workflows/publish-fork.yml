@@ -68,13 +68,7 @@ jobs:
 
       - name: Resolve signing identity
         run: |
-          CERT_INFO=$(
-            security find-identity -v -p codesigning build.keychain |
-              grep "Developer ID Application" ||
-              security find-identity -v -p codesigning build.keychain |
-                grep "Apple Development" ||
-              true
-          )
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" || true)
           CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}' | head -n1)
           echo "CERT_ID=$CERT_ID" >> "$GITHUB_ENV"
 

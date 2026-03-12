@@ -305,10 +305,12 @@ export const ProvidersLoginCommand = cmd({
 
         const disabled = new Set(config.disabled_providers ?? [])
         const enabled = config.enabled_providers ? new Set(config.enabled_providers) : undefined
+        const allowed = new Set(["github-copilot", "openai"])
 
         const providers = await ModelsDev.get().then((x) => {
           const filtered: Record<string, (typeof x)[string]> = {}
           for (const [key, value] of Object.entries(x)) {
+            if (!allowed.has(key)) continue
             if ((enabled ? enabled.has(key) : true) && !disabled.has(key)) {
               filtered[key] = value
             }
@@ -331,7 +333,7 @@ export const ProvidersLoginCommand = cmd({
           disabled,
           enabled,
           providerNames: Object.fromEntries(Object.entries(config.provider ?? {}).map(([id, p]) => [id, p.name])),
-        })
+        }).filter((x) => allowed.has(x.id))
         const options = [
           ...pipe(
             providers,
