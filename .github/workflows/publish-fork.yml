@@ -163,6 +163,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GITHUB_RUN_ID: ${{ github.run_id }}
 
+      - name: Clear stale dmg mount
+        if: ${{ runner.os == 'macOS' }}
+        run: hdiutil detach "/Volumes/OpenCode" -force >/dev/null 2>&1 || true
+
       - name: Resolve tauri portable SHA
         if: contains(matrix.settings.host, 'ubuntu')
         run: echo "TAURI_PORTABLE_SHA=$(git ls-remote https://github.com/tauri-apps/tauri.git refs/heads/feat/truly-portable-appimage | cut -f1)" >> "$GITHUB_ENV"
@@ -297,6 +301,7 @@ jobs:
           OPENCODE_CHANNEL: prod
 
       - name: Remove existing release assets
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
