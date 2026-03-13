@@ -55,10 +55,14 @@ Compared to upstream OpenCode, this fork intentionally narrows a few features:
 ### Install Nopecode
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/malaporte/nopecode/dev/install | bash
+curl -fsSL https://raw.githubusercontent.com/malaporte/nopecode/main/install | bash
 ```
 
-### Installation
+This installs the forked `nopecode` CLI into `~/.nopecode/bin/nopecode`. It does not replace an existing upstream `opencode` binary.
+
+### Upstream OpenCode Installation
+
+These commands install upstream OpenCode, not this fork:
 
 ```bash
 # YOLO
@@ -79,7 +83,7 @@ nix run nixpkgs#opencode           # or github:anomalyco/opencode for latest dev
 > [!TIP]
 > Remove versions older than 0.1.x before installing.
 
-### Desktop App (BETA)
+### Upstream OpenCode Desktop App (BETA)
 
 OpenCode is also available as a desktop application. Download directly from the [releases page](https://github.com/anomalyco/opencode/releases) or [opencode.ai/download](https://opencode.ai/download).
 
@@ -97,7 +101,7 @@ brew install --cask opencode-desktop
 scoop bucket add extras; scoop install extras/opencode-desktop
 ```
 
-#### Installation Directory
+#### Upstream OpenCode Installation Directory
 
 The install script respects the following priority order for the installation path:
 

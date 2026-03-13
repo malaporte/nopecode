@@ -2,7 +2,7 @@
 set -euo pipefail
 APP=nopecode
 REPO=malaporte/nopecode
-INSTALL_URL=https://raw.githubusercontent.com/${REPO}/dev/install
+INSTALL_URL=https://raw.githubusercontent.com/${REPO}/main/install
 
 MUTED='\033[0;2m'
 RED='\033[0;31m'
@@ -228,9 +228,9 @@ check_version() {
         installed_version=$(nopecode --version 2>/dev/null || echo "")
 
         if [[ "$installed_version" != "$specific_version" ]]; then
-            print_message info "${MUTED}Installed version: ${NC}$installed_version."
+            print_message info "${MUTED}Installed Nopecode: ${NC}$installed_version ${MUTED}at ${NC}$nopecode_path"
         else
-            print_message info "${MUTED}Version ${NC}$specific_version${MUTED} already installed"
+            print_message info "${MUTED}Nopecode ${NC}$specific_version ${MUTED}already installed at ${NC}$nopecode_path"
             exit 0
         fi
     fi
@@ -452,11 +452,11 @@ echo -e "${MUTED}█░░█ █░░█ █▀▀▀ █░░█ ${NC}█░
 echo -e "${MUTED}▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀  ▀ ${NC}▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀"
 echo -e ""
 echo -e ""
-echo -e "${MUTED}OpenCode includes free models, to start:${NC}"
+echo -e "${MUTED}Nopecode is installed, to start:${NC}"
 echo -e ""
 echo -e "cd <project>  ${MUTED}# Open directory${NC}"
 echo -e "nopecode      ${MUTED}# Run command${NC}"
 echo -e ""
-echo -e "${MUTED}For more information visit ${NC}https://opencode.ai/docs"
+echo -e "${MUTED}For more information visit ${NC}https://github.com/malaporte/nopecode"
 echo -e ""
 echo -e ""
