@@ -1,0 +1,44 @@
+name: sync-fork
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Upstream release tag to sync
+        required: false
+        type: string
+
+concurrency: sync-fork-${{ inputs.tag || github.run_id }}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    if: github.repository == 'malaporte/nopecode'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    env:
+      UPSTREAM_REPO: anomalyco/opencode
+      SYNC_BASE: custom
+      SYNC_HEAD: sync/upstream-release
+      UPSTREAM_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Configure git user
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync fork branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun script/sync-fork.ts
