@@ -114,15 +114,15 @@ export namespace Installation {
       },
       {
         name: "brew" as const,
-        command: () => text(["brew", "list", "--formula", "opencode"]),
+        command: () => text(["brew", "list", "--formula", "nopecode"]),
       },
       {
         name: "scoop" as const,
-        command: () => text(["scoop", "list", "opencode"]),
+        command: () => text(["scoop", "list", "nopecode"]),
       },
       {
         name: "choco" as const,
-        command: () => text(["choco", "list", "--limit-output", "opencode"]),
+        command: () => text(["choco", "list", "--limit-output", "nopecode"]),
       },
     ]
 
@@ -137,7 +137,7 @@ export namespace Installation {
     for (const check of checks) {
       const output = await check.command()
       const installedName =
-        check.name === "brew" || check.name === "choco" || check.name === "scoop" ? "opencode" : "opencode-ai"
+        check.name === "brew" || check.name === "choco" || check.name === "scoop" ? "nopecode" : "nopecode"
       if (output.includes(installedName)) {
         return check.name
       }
@@ -154,11 +154,11 @@ export namespace Installation {
   )
 
   async function getBrewFormula() {
-    const tapFormula = await text(["brew", "list", "--formula", "anomalyco/tap/opencode"])
-    if (tapFormula.includes("opencode")) return "anomalyco/tap/opencode"
-    const coreFormula = await text(["brew", "list", "--formula", "opencode"])
-    if (coreFormula.includes("opencode")) return "opencode"
-    return "opencode"
+    const forkFormula = await text(["brew", "list", "--formula", "malaporte/nopecode/nopecode"])
+    if (forkFormula.includes("nopecode")) return "malaporte/nopecode/nopecode"
+    const coreFormula = await text(["brew", "list", "--formula", "nopecode"])
+    if (coreFormula.includes("nopecode")) return "nopecode"
+    return "nopecode"
   }
 
   export async function upgrade(method: Method, target: string) {
@@ -168,13 +168,13 @@ export namespace Installation {
         result = await upgradeCurl(target)
         break
       case "npm":
-        result = await Process.run(["npm", "install", "-g", `opencode-ai@${target}`], { nothrow: true })
+        result = await Process.run(["npm", "install", "-g", `nopecode@${target}`], { nothrow: true })
         break
       case "pnpm":
-        result = await Process.run(["pnpm", "install", "-g", `opencode-ai@${target}`], { nothrow: true })
+        result = await Process.run(["pnpm", "install", "-g", `nopecode@${target}`], { nothrow: true })
         break
       case "bun":
-        result = await Process.run(["bun", "install", "-g", `opencode-ai@${target}`], { nothrow: true })
+        result = await Process.run(["bun", "install", "-g", `nopecode@${target}`], { nothrow: true })
         break
       case "brew": {
         const formula = await getBrewFormula()
@@ -183,12 +183,12 @@ export namespace Installation {
           ...process.env,
         }
         if (formula.includes("/")) {
-          const tap = await Process.run(["brew", "tap", "anomalyco/tap"], { env, nothrow: true })
+          const tap = await Process.run(["brew", "tap", "malaporte/nopecode"], { env, nothrow: true })
           if (tap.code !== 0) {
             result = tap
             break
           }
-          const repo = await Process.text(["brew", "--repo", "anomalyco/tap"], { env, nothrow: true })
+          const repo = await Process.text(["brew", "--repo", "malaporte/nopecode"], { env, nothrow: true })
           if (repo.code !== 0) {
             result = repo
             break
@@ -207,10 +207,10 @@ export namespace Installation {
       }
 
       case "choco":
-        result = await Process.run(["choco", "upgrade", "opencode", `--version=${target}`, "-y"], { nothrow: true })
+        result = await Process.run(["choco", "upgrade", "nopecode", `--version=${target}`, "-y"], { nothrow: true })
         break
       case "scoop":
-        result = await Process.run(["scoop", "install", `opencode@${target}`], { nothrow: true })
+        result = await Process.run(["scoop", "install", `nopecode@${target}`], { nothrow: true })
         break
       default:
         throw new Error(`Unknown method: ${method}`)
@@ -233,7 +233,7 @@ export namespace Installation {
 
   export const VERSION = typeof OPENCODE_VERSION === "string" ? OPENCODE_VERSION : "local"
   export const CHANNEL = typeof OPENCODE_CHANNEL === "string" ? OPENCODE_CHANNEL : "local"
-  export const USER_AGENT = `opencode/${CHANNEL}/${VERSION}/${Flag.OPENCODE_CLIENT}`
+  export const USER_AGENT = `nopecode/${CHANNEL}/${VERSION}/${Flag.OPENCODE_CLIENT}`
 
   export async function latest(installMethod?: Method) {
     const detectedMethod = installMethod || (await method())
@@ -247,7 +247,7 @@ export namespace Installation {
         if (!version) throw new Error(`Could not detect version for tap formula: ${formula}`)
         return version
       }
-      return fetch("https://formulae.brew.sh/api/formula/opencode.json")
+      return fetch("https://formulae.brew.sh/api/formula/nopecode.json")
         .then((res) => {
           if (!res.ok) throw new Error(res.statusText)
           return res.json()
@@ -262,7 +262,7 @@ export namespace Installation {
         return reg.endsWith("/") ? reg.slice(0, -1) : reg
       })
       const channel = CHANNEL
-      return fetch(`${registry}/opencode-ai/${channel}`)
+      return fetch(`${registry}/nopecode/${channel}`)
         .then((res) => {
           if (!res.ok) throw new Error(res.statusText)
           return res.json()
@@ -272,7 +272,7 @@ export namespace Installation {
 
     if (detectedMethod === "choco") {
       return fetch(
-        "https://community.chocolatey.org/api/v2/Packages?$filter=Id%20eq%20%27opencode%27%20and%20IsLatestVersion&$select=Version",
+        "https://community.chocolatey.org/api/v2/Packages?$filter=Id%20eq%20%27nopecode%27%20and%20IsLatestVersion&$select=Version",
         { headers: { Accept: "application/json;odata=verbose" } },
       )
         .then((res) => {
@@ -283,7 +283,7 @@ export namespace Installation {
     }
 
     if (detectedMethod === "scoop") {
-      return fetch("https://raw.githubusercontent.com/ScoopInstaller/Main/master/bucket/opencode.json", {
+      return fetch("https://raw.githubusercontent.com/ScoopInstaller/Main/master/bucket/nopecode.json", {
         headers: { Accept: "application/json" },
       })
         .then((res) => {
