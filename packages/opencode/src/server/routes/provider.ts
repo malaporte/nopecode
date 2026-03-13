@@ -38,11 +38,20 @@ export const ProviderRoutes = lazy(() =>
         const config = await Config.get()
         const disabled = new Set(config.disabled_providers ?? [])
         const enabled = config.enabled_providers ? new Set(config.enabled_providers) : undefined
+        const allowed = new Set(["github-copilot", "openai"])
 
         const allProviders = await ModelsDev.get()
         const filteredProviders: Record<string, (typeof allProviders)[string]> = {}
         for (const [key, value] of Object.entries(allProviders)) {
+          if (!allowed.has(key)) continue
           if ((enabled ? enabled.has(key) : true) && !disabled.has(key)) {
+            if (key === "github-copilot") {
+              filteredProviders[key] = {
+                ...value,
+                models: Object.fromEntries(Object.entries(value.models).filter(([id]) => !id.includes("grok"))),
+              }
+              continue
+            }
             filteredProviders[key] = value
           }
         }
