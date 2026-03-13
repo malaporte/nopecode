@@ -10,7 +10,7 @@ export async function upgrade() {
   if (!latest) return
   if (Installation.VERSION === latest) return
 
-  const autoupdate = config.autoupdate ?? false
+  const autoupdate = config.autoupdate ?? true
 
   if (autoupdate === false || Flag.OPENCODE_DISABLE_AUTOUPDATE) {
     return

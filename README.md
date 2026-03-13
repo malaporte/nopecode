@@ -43,6 +43,21 @@
 
 ---
 
+### What Is Nopecode?
+
+Nopecode is a fork of OpenCode that keeps the upstream project structure while shipping a separate CLI, release channel, and fork-specific behavior. It is intended to stay broadly compatible with OpenCode, but it publishes its own builds as `nopecode` and uses the `malaporte/nopecode` release pipeline.
+
+Compared to upstream OpenCode, this fork intentionally narrows a few features:
+
+- Only the `openai` and `github-copilot` providers are supported.
+- Custom plugins are disabled; built-in notification behavior remains available.
+
+### Install Nopecode
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/malaporte/nopecode/dev/install | bash
+```
+
 ### Installation
 
 ```bash
