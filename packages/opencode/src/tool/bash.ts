@@ -18,7 +18,6 @@ import { BashArity } from "@/permission/arity"
 import { Truncate } from "./truncation"
 import { Plugin } from "@/plugin"
 import { Config } from "@/config/config"
-import os from "os"
 
 const MAX_METADATA_LENGTH = 30_000
 const DEFAULT_TIMEOUT = Flag.OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS || 2 * 60 * 1000
@@ -171,7 +170,7 @@ export const BashTool = Tool.define("bash", async () => {
       const sandbox = cfg.sandbox?.enabled ? cfg.sandbox : undefined
       const proc = sandbox
         ? spawn(sandbox.command || "pippin", ["-c", params.command], {
-            cwd: os.homedir(),
+            cwd,
             env: {
               ...process.env,
               ...shellEnv.env,
