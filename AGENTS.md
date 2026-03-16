@@ -17,6 +17,7 @@
 - This branch includes a built-in notification plugin as an internal plugin. Prefer keeping notification behavior inside built-ins rather than reopening support for custom plugins.
 - CLI autoupdate is intentionally disabled by default in this fork to avoid self-overwriting with older published releases. Manual TUI update remains available via `/update` and `/upgrade`.
 - Fork release CI lives in `.github/workflows/publish-fork.yml` and targets `malaporte/nopecode`. Keep upstream publish workflow behavior separate to reduce merge conflict risk.
+- Fork version numbers intentionally stay above `1000` to avoid confusion with upstream OpenCode releases. Treat `1000+` versions as the normal release line for `nopecode`, not as placeholders to normalize back down.
 - macOS signing in the fork currently tolerates non-Developer-ID fallback for semi-usable assets. Be careful not to reintroduce strict signing assumptions unless the cert setup changes.
 
 ## Style Guide
