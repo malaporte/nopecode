@@ -17,6 +17,8 @@ import { Shell } from "@/shell/shell"
 import { BashArity } from "@/permission/arity"
 import { Truncate } from "./truncation"
 import { Plugin } from "@/plugin"
+import { Config } from "@/config/config"
+import os from "os"
 
 const MAX_METADATA_LENGTH = 30_000
 const DEFAULT_TIMEOUT = Flag.OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS || 2 * 60 * 1000
@@ -164,17 +166,33 @@ export const BashTool = Tool.define("bash", async () => {
         { cwd, sessionID: ctx.sessionID, callID: ctx.callID },
         { env: {} },
       )
-      const proc = spawn(params.command, {
-        shell,
-        cwd,
-        env: {
-          ...process.env,
-          ...shellEnv.env,
-        },
-        stdio: ["ignore", "pipe", "pipe"],
-        detached: process.platform !== "win32",
-        windowsHide: process.platform === "win32",
-      })
+
+      const cfg = await Config.get()
+      const sandbox = cfg.sandbox?.enabled ? cfg.sandbox : undefined
+      const proc = sandbox
+        ? spawn(sandbox.command || "pippin", ["-c", params.command], {
+            cwd: os.homedir(),
+            env: {
+              ...process.env,
+              ...shellEnv.env,
+              ...(sandbox.host ? { PIPPIN_HOST: sandbox.host } : {}),
+              ...(sandbox.port ? { PIPPIN_PORT: String(sandbox.port) } : {}),
+            },
+            stdio: ["ignore", "pipe", "pipe"],
+            detached: process.platform !== "win32",
+            windowsHide: process.platform === "win32",
+          })
+        : spawn(params.command, {
+            shell,
+            cwd,
+            env: {
+              ...process.env,
+              ...shellEnv.env,
+            },
+            stdio: ["ignore", "pipe", "pipe"],
+            detached: process.platform !== "win32",
+            windowsHide: process.platform === "win32",
+          })
 
       let output = ""
 

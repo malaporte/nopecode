@@ -1185,6 +1185,18 @@ export namespace Config {
             .describe("Token buffer for compaction. Leaves enough window to avoid overflow during compaction."),
         })
         .optional(),
+      sandbox: z
+        .object({
+          enabled: z.boolean().optional().describe("Enable sandboxed command execution via pippin"),
+          command: z
+            .string()
+            .optional()
+            .describe("Path to the pippin binary. Defaults to 'pippin' (resolved from PATH)"),
+          host: z.string().optional().describe("PIPPIN_HOST override"),
+          port: z.number().int().positive().optional().describe("PIPPIN_PORT override"),
+        })
+        .optional()
+        .describe("Route bash tool commands through a sandboxed container via the pippin CLI"),
       experimental: z
         .object({
           disable_paste_summary: z.boolean().optional(),

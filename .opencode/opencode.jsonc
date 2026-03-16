@@ -10,6 +10,9 @@
       "packages/opencode/migration/*": "deny",
     },
   },
+  "sandbox": {
+    "enabled": true,
+  },
   "mcp": {},
   "tools": {
     "github-triage": false,
