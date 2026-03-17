@@ -86,33 +86,39 @@ afterEach(() => {
 
 describe("provider.list endpoint", () => {
   test("returns only allowed providers and strips copilot grok models", async () => {
-    await using tmp = await tmpdir({
-      config: {},
-      init: async (dir) => {
-        const file = path.join(dir, "models.json")
-        await Bun.write(file, JSON.stringify(data))
-        process.env.OPENCODE_MODELS_PATH = file
-      },
-    })
+    const saved = process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+    delete process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+    try {
+      await using tmp = await tmpdir({
+        config: {},
+        init: async (dir) => {
+          const file = path.join(dir, "models.json")
+          await Bun.write(file, JSON.stringify(data))
+          process.env.OPENCODE_MODELS_PATH = file
+        },
+      })
 
-    await Instance.provide({
-      directory: tmp.path,
-      fn: async () => {
-        ModelsDev.Data.reset()
-        const app = Server.Default()
-        const response = await app.request("/provider")
+      await Instance.provide({
+        directory: tmp.path,
+        fn: async () => {
+          ModelsDev.Data.reset()
+          const app = Server.Default()
+          const response = await app.request("/provider")
 
-        expect(response.status).toBe(200)
+          expect(response.status).toBe(200)
 
-        const body = await response.json()
-        const ids = body.all.map((x: { id: string }) => x.id).sort()
-        expect(ids).toEqual(["github-copilot", "openai"])
+          const body = await response.json()
+          const ids = body.all.map((x: { id: string }) => x.id).sort()
+          expect(ids).toEqual(["github-copilot", "openai"])
 
-        const copilot = body.all.find((x: { id: string }) => x.id === "github-copilot")
-        expect(copilot).toBeDefined()
-        expect(copilot.models["gpt-5.2-codex"]).toBeDefined()
-        expect(copilot.models["grok-code-fast-1"]).toBeUndefined()
-      },
-    })
+          const copilot = body.all.find((x: { id: string }) => x.id === "github-copilot")
+          expect(copilot).toBeDefined()
+          expect(copilot.models["gpt-5.2-codex"]).toBeDefined()
+          expect(copilot.models["grok-code-fast-1"]).toBeUndefined()
+        },
+      })
+    } finally {
+      if (saved !== undefined) process.env["NOPECODE_ALLOW_ALL_PROVIDERS"] = saved
+    }
   })
 })

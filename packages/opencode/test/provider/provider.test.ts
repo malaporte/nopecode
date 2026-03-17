@@ -95,68 +95,86 @@ test("enabled_providers narrows within branch allowlist", async () => {
 })
 
 test("blocked provider from env is ignored", async () => {
-  await using tmp = await project()
-  await Instance.provide({
-    directory: tmp.path,
-    init: async () => {
-      Env.set("ANTHROPIC_API_KEY", "test-api-key")
-    },
-    fn: async () => {
-      const providers = await Provider.list()
-      expect(providers["anthropic"]).toBeUndefined()
-    },
-  })
+  const saved = process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+  delete process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+  try {
+    await using tmp = await project()
+    await Instance.provide({
+      directory: tmp.path,
+      init: async () => {
+        Env.set("ANTHROPIC_API_KEY", "test-api-key")
+      },
+      fn: async () => {
+        const providers = await Provider.list()
+        expect(providers["anthropic"]).toBeUndefined()
+      },
+    })
+  } finally {
+    if (saved !== undefined) process.env["NOPECODE_ALLOW_ALL_PROVIDERS"] = saved
+  }
 })
 
 test("blocked provider from config is ignored", async () => {
-  await using tmp = await project({
-    $schema: "https://opencode.ai/config.json",
-    provider: {
-      anthropic: {
-        options: {
-          apiKey: "config-api-key",
+  const saved = process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+  delete process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+  try {
+    await using tmp = await project({
+      $schema: "https://opencode.ai/config.json",
+      provider: {
+        anthropic: {
+          options: {
+            apiKey: "config-api-key",
+          },
         },
       },
-    },
-  })
-  await Instance.provide({
-    directory: tmp.path,
-    fn: async () => {
-      const providers = await Provider.list()
-      expect(providers["anthropic"]).toBeUndefined()
-    },
-  })
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const providers = await Provider.list()
+        expect(providers["anthropic"]).toBeUndefined()
+      },
+    })
+  } finally {
+    if (saved !== undefined) process.env["NOPECODE_ALLOW_ALL_PROVIDERS"] = saved
+  }
 })
 
 test("custom provider from config is ignored", async () => {
-  await using tmp = await project({
-    $schema: "https://opencode.ai/config.json",
-    provider: {
-      "custom-provider": {
-        name: "Custom Provider",
-        npm: "@ai-sdk/openai-compatible",
-        api: "https://api.custom.com/v1",
-        env: ["CUSTOM_API_KEY"],
-        models: {
-          "custom-model": {
-            name: "Custom Model",
-            tool_call: true,
-            limit: {
-              context: 128000,
-              output: 4096,
+  const saved = process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+  delete process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+  try {
+    await using tmp = await project({
+      $schema: "https://opencode.ai/config.json",
+      provider: {
+        "custom-provider": {
+          name: "Custom Provider",
+          npm: "@ai-sdk/openai-compatible",
+          api: "https://api.custom.com/v1",
+          env: ["CUSTOM_API_KEY"],
+          models: {
+            "custom-model": {
+              name: "Custom Model",
+              tool_call: true,
+              limit: {
+                context: 128000,
+                output: 4096,
+              },
             },
           },
         },
       },
-    },
-  })
-  await Instance.provide({
-    directory: tmp.path,
-    fn: async () => {
-      const providers = await Provider.list()
-      expect(providers["custom-provider"]).toBeUndefined()
-    },
-  })
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const providers = await Provider.list()
+        expect(providers["custom-provider"]).toBeUndefined()
+      },
+    })
+  } finally {
+    if (saved !== undefined) process.env["NOPECODE_ALLOW_ALL_PROVIDERS"] = saved
+  }
 })
 
 test("openai model filters still work", async () => {
@@ -244,18 +262,24 @@ test("github-copilot filters grok models", async () => {
 })
 
 test("getModel throws for blocked provider", async () => {
-  await using tmp = await project()
-  await Instance.provide({
-    directory: tmp.path,
-    init: async () => {
-      Env.set("ANTHROPIC_API_KEY", "test-api-key")
-    },
-    fn: async () => {
-      expect(
-        Provider.getModel(ProviderID.make("anthropic"), ModelID.make("claude-sonnet-4-20250514")),
-      ).rejects.toThrow()
-    },
-  })
+  const saved = process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+  delete process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+  try {
+    await using tmp = await project()
+    await Instance.provide({
+      directory: tmp.path,
+      init: async () => {
+        Env.set("ANTHROPIC_API_KEY", "test-api-key")
+      },
+      fn: async () => {
+        expect(
+          Provider.getModel(ProviderID.make("anthropic"), ModelID.make("claude-sonnet-4-20250514")),
+        ).rejects.toThrow()
+      },
+    })
+  } finally {
+    if (saved !== undefined) process.env["NOPECODE_ALLOW_ALL_PROVIDERS"] = saved
+  }
 })
 
 test("parseModel correctly parses provider/model string", () => {
