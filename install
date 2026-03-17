@@ -333,13 +333,31 @@ download_and_install() {
 
     if [[ "$os" == "windows" ]] || ! [ -t 2 ] || ! download_with_progress "$url" "$tmp_dir/$filename"; then
         # Fallback to standard curl on Windows, non-TTY environments, or if custom progress fails
-        curl -# -L -o "$tmp_dir/$filename" "$url"
+        if ! curl -f# -L -o "$tmp_dir/$filename" "$url"; then
+            echo -e "${RED}Error: Failed to download ${filename}${NC}"
+            echo -e "${MUTED}URL: ${url}${NC}"
+            exit 1
+        fi
+    fi
+
+    if [ ! -s "$tmp_dir/$filename" ]; then
+        echo -e "${RED}Error: Downloaded file is empty: ${filename}${NC}"
+        echo -e "${MUTED}URL: ${url}${NC}"
+        exit 1
     fi
 
     if [ "$os" = "linux" ]; then
-        tar -xzf "$tmp_dir/$filename" -C "$tmp_dir"
+        if ! tar -xzf "$tmp_dir/$filename" -C "$tmp_dir"; then
+            echo -e "${RED}Error: Downloaded archive is not a valid tarball: ${filename}${NC}"
+            echo -e "${MUTED}URL: ${url}${NC}"
+            exit 1
+        fi
     else
-        unzip -q "$tmp_dir/$filename" -d "$tmp_dir"
+        if ! unzip -q "$tmp_dir/$filename" -d "$tmp_dir"; then
+            echo -e "${RED}Error: Downloaded archive is not a valid zip: ${filename}${NC}"
+            echo -e "${MUTED}URL: ${url}${NC}"
+            exit 1
+        fi
     fi
 
     mv "$tmp_dir/nopecode" "$INSTALL_DIR"

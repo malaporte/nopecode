@@ -59,6 +59,22 @@ console.log(`Loaded ${migrations.length} migrations`)
 const singleFlag = process.argv.includes("--single")
 const baselineFlag = process.argv.includes("--baseline")
 const skipInstall = process.argv.includes("--skip-install")
+const release = process.env.OPENCODE_RELEASE
+
+console.log(
+  "build env",
+  JSON.stringify(
+    {
+      version: Script.version,
+      channel: Script.channel,
+      release,
+      releaseMode: Script.release,
+      repo: process.env.GH_REPO,
+    },
+    null,
+    2,
+  ),
+)
 
 const allTargets: {
   os: string
@@ -224,7 +240,7 @@ for (const item of targets) {
   binaries[name] = Script.version
 }
 
-if (Script.release) {
+if (release) {
   for (const key of Object.keys(binaries)) {
     if (key.includes("linux")) {
       await $`tar -czf ../../${key}.tar.gz *`.cwd(`dist/${key}/bin`)
@@ -232,7 +248,10 @@ if (Script.release) {
       await $`zip -r ../../${key}.zip *`.cwd(`dist/${key}/bin`)
     }
   }
+  console.log("uploading release assets", Object.keys(binaries))
   await $`gh release upload v${Script.version} ./dist/*.zip ./dist/*.tar.gz --clobber --repo ${process.env.GH_REPO}`
+} else if (Script.release) {
+  throw new Error("Script.release is true but OPENCODE_RELEASE is missing")
 }
 
 export { binaries }
