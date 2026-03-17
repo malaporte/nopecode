@@ -4,6 +4,7 @@ import { Instance } from "../../src/project/instance"
 import { Plugin } from "../../src/plugin"
 import { SessionStatus } from "../../src/session/status"
 import { Session } from "../../src/session"
+import { SessionID } from "../../src/session/schema"
 import { Filesystem } from "../../src/util/filesystem"
 import path from "path"
 import { shouldNotify } from "../../src/plugin/notify"
@@ -64,8 +65,8 @@ describe("notify plugin", () => {
           title: "Review changes",
         })
         await Plugin.init()
-        SessionStatus.set("session_1", { type: "busy" })
-        SessionStatus.set("session_1", { type: "idle" })
+        SessionStatus.set(SessionID.make("session_1"), { type: "busy" })
+        SessionStatus.set(SessionID.make("session_1"), { type: "idle" })
         await Bun.sleep(10)
         expect(spawn).toHaveBeenCalled()
       },

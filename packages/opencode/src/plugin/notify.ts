@@ -2,6 +2,7 @@ import type { Event } from "@opencode-ai/sdk"
 import type { Plugin } from "@opencode-ai/plugin"
 import { Config } from "@/config/config"
 import { Session } from "@/session"
+import { SessionID } from "@/session/schema"
 
 function esc(input: string) {
   return input.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
@@ -74,7 +75,7 @@ export const NotifyPlugin: Plugin = async () => {
       if (event.type === "session.status") {
         if (!shouldNotify(seen, event)) return
         const sessionID = event.properties.sessionID
-        const info = await Session.get(sessionID).catch(() => undefined)
+        const info = await Session.get(SessionID.make(sessionID)).catch(() => undefined)
         const title = info?.title && !Session.isDefaultTitle(info.title) ? info.title : "Ready for review"
         await send("nopecode", title, notify.sound ?? false)
         return

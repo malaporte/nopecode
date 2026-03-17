@@ -27,6 +27,11 @@ export namespace Plugin {
     const client = createOpencodeClient({
       baseUrl: "http://localhost:4096",
       directory: Instance.directory,
+      headers: Flag.OPENCODE_SERVER_PASSWORD
+        ? {
+            Authorization: `Basic ${Buffer.from(`${Flag.OPENCODE_SERVER_USERNAME ?? "opencode"}:${Flag.OPENCODE_SERVER_PASSWORD}`).toString("base64")}`,
+          }
+        : undefined,
       fetch: async (...args) => Server.Default().fetch(...args),
     })
     const config = await Config.get()
@@ -37,7 +42,7 @@ export namespace Plugin {
       worktree: Instance.worktree,
       directory: Instance.directory,
       get serverUrl(): URL {
-        throw new Error("Server URL is no longer supported in plugins")
+        return Server.url ?? new URL("http://localhost:4096")
       },
       $: Bun.$,
     }

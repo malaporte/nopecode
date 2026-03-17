@@ -11,7 +11,7 @@
     },
   },
   "sandbox": {
-    "enabled": true,
+    "enabled": false,
   },
   "mcp": {},
   "tools": {
