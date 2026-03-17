@@ -52,6 +52,11 @@ Compared to upstream OpenCode, this fork intentionally narrows a few features:
 - Only the `openai` and `github-copilot` providers are supported.
 - Custom plugins are disabled; built-in notification behavior remains available.
 
+### Maintaining The Fork
+
+Upstream OpenCode updates are maintained through the repo-local agent skill at `.opencode/skills/update-fork/`.
+The older scripted `sync-fork` workflow is intentionally removed in favor of agent-driven upstream integration that preserves nopecode-specific behavior.
+
 ### Install Nopecode
 
 ```bash
