@@ -52,6 +52,12 @@ const parser = lazy(async () => {
   return p
 })
 
+function pippin(output: string) {
+  return /(?:^|\n).*?(?:no\s+\.pippin\.toml\s+found|\.pippin\.toml.*(?:not found|missing|could not find|no such file))/i.test(
+    output,
+  )
+}
+
 // TODO: we may wanna rename this tool so it works better on other shells
 export const BashTool = Tool.define("bash", async () => {
   const shell = Shell.acceptable()
@@ -167,9 +173,9 @@ export const BashTool = Tool.define("bash", async () => {
       )
 
       const cfg = await Config.get()
-      const sandbox = cfg.sandbox?.enabled ? cfg.sandbox : undefined
+      const sandbox = cfg.sandbox?.enabled === false ? undefined : cfg.sandbox ?? {}
       const proc = sandbox
-        ? spawn(sandbox.command || "pippin", ["-c", params.command], {
+        ? spawn(sandbox.command || "pippin", ["run", params.command], {
             cwd,
             env: {
               ...process.env,
@@ -271,6 +277,16 @@ export const BashTool = Tool.define("bash", async () => {
 
       if (resultMetadata.length > 0) {
         output += "\n\n<bash_metadata>\n" + resultMetadata.join("\n") + "\n</bash_metadata>"
+      }
+
+      if (sandbox && proc.exitCode && pippin(output)) {
+        output =
+          "nopecode could not run this command because sandboxing is enabled by default and no valid `.pippin.toml` was found in this directory or any parent directory.\n\n" +
+          "To use nopecode here, add a valid `.pippin.toml` for pippin in this project or a parent directory.\n" +
+          "If you need to work without pippin here, disable sandboxing for this workspace by setting `sandbox.enabled` to `false`.\n\n" +
+          "<pippin_output>\n" +
+          output.trim() +
+          "\n</pippin_output>"
       }
 
       return {
