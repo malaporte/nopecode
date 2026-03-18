@@ -1360,6 +1360,13 @@ export type Config = {
    */
   autoupdate?: boolean | "notify"
   /**
+   * Built-in OS notifications for session completion and errors
+   */
+  notify?: {
+    enabled?: boolean
+    sound?: boolean
+  }
+  /**
    * Disable providers that are loaded automatically
    */
   disabled_providers?: Array<string>
@@ -1480,6 +1487,27 @@ export type Config = {
      * Token buffer for compaction. Leaves enough window to avoid overflow during compaction.
      */
     reserved?: number
+  }
+  /**
+   * Route bash tool commands through a sandboxed container via the `pippin run` CLI
+   */
+  sandbox?: {
+    /**
+     * Enable sandboxed command execution via `pippin run`
+     */
+    enabled?: boolean
+    /**
+     * Path to the pippin binary used for `pippin run`. Defaults to 'pippin' (resolved from PATH)
+     */
+    command?: string
+    /**
+     * PIPPIN_HOST override
+     */
+    host?: string
+    /**
+     * PIPPIN_PORT override
+     */
+    port?: number
   }
   experimental?: {
     disable_paste_summary?: boolean

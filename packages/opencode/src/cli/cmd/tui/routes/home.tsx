@@ -35,6 +35,8 @@ export function Home() {
     return Object.values(sync.data.mcp).filter((x) => x.status === "connected").length
   })
 
+  const sandbox = createMemo(() => sync.data.config.sandbox?.enabled !== false)
+
   const isFirstTimeUser = createMemo(() => sync.data.session.length === 0)
   const tipsHidden = createMemo(() => kv.get("tips_hidden", false))
   const showTips = createMemo(() => {
@@ -149,6 +151,7 @@ export function Home() {
             </text>
             <text fg={theme.textMuted}>/status</text>
           </Show>
+          <text fg={sandbox() ? theme.success : theme.warning}>{sandbox() ? "◆" : "◇"} Sandbox</text>
         </box>
         <box flexGrow={1} />
         <box flexShrink={0}>

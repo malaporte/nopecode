@@ -721,6 +721,32 @@ function App() {
         dialog.clear()
       },
     },
+    {
+      title: sync.data.config.sandbox?.enabled !== false ? "Disable sandbox" : "Enable sandbox",
+      value: "app.toggle.sandbox",
+      category: "System",
+      slash: {
+        name: "sandbox",
+      },
+      onSelect: async (dialog) => {
+        const enabled = sync.data.config.sandbox?.enabled !== false
+        const next = !enabled
+        dialog.clear()
+        sync.set("config", "sandbox", { enabled: next })
+        const result = await sdk.client.global.config
+          .update({ config: { sandbox: { enabled: next } } })
+          .catch(() => undefined)
+        if (!result?.data) {
+          sync.set("config", "sandbox", { enabled: !next })
+          toast.show({ message: "Failed to update sandbox setting", variant: "error" })
+          return
+        }
+        toast.show({
+          message: next ? "Sandbox enabled" : "Sandbox disabled",
+          variant: "info",
+        })
+      },
+    },
   ])
 
   createEffect(() => {

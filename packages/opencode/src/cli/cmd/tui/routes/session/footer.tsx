@@ -17,6 +17,7 @@ export function Footer() {
     if (route.data.type !== "session") return []
     return sync.data.permission[route.data.sessionID] ?? []
   })
+  const sandbox = createMemo(() => sync.data.config.sandbox?.enabled !== false)
   const directory = useDirectory()
   const connected = useConnected()
 
@@ -82,6 +83,7 @@ export function Footer() {
                 {mcp()} MCP
               </text>
             </Show>
+            <text fg={sandbox() ? theme.success : theme.warning}>{sandbox() ? "◆" : "◇"} Sandbox</text>
             <text fg={theme.textMuted}>/status</text>
           </Match>
         </Switch>
