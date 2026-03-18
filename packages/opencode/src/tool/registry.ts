@@ -16,7 +16,6 @@ import type { Agent } from "../agent/agent"
 import { Tool } from "./tool"
 import { Instance } from "../project/instance"
 import { Config } from "../config/config"
-import path from "path"
 import { type ToolContext as PluginToolContext, type ToolDefinition } from "@opencode-ai/plugin"
 import z from "zod"
 import { Plugin } from "../plugin"
@@ -30,7 +29,8 @@ import { Truncate } from "./truncate"
 
 import { ApplyPatchTool } from "./apply_patch"
 import { Glob } from "../util/glob"
-import { pathToFileURL } from "url"
+import { Bus } from "../bus"
+import { TuiEvent } from "@/cli/cmd/tui/event"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -43,13 +43,13 @@ export namespace ToolRegistry {
         Glob.scanSync("{tool,tools}/*.{js,ts}", { cwd: dir, absolute: true, dot: true, symlink: true }),
       ),
     )
-    if (matches.length) await Config.waitForDependencies()
-    for (const match of matches) {
-      const namespace = path.basename(match, path.extname(match))
-      const mod = await import(pathToFileURL(match).href)
-      for (const [id, def] of Object.entries<ToolDefinition>(mod)) {
-        custom.push(fromPlugin(id === "default" ? namespace : `${namespace}_${id}`, def))
-      }
+    if (matches.length) {
+      log.warn("ignoring custom tools", { tools: matches })
+      await Bus.publish(TuiEvent.ToastShow, {
+        title: "Custom tools ignored",
+        message: "Custom tools are disabled in this build and configured tools will be ignored.",
+        variant: "warning",
+      })
     }
 
     const plugins = await Plugin.list()
