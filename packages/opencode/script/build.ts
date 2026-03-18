@@ -177,7 +177,7 @@ for (const item of targets) {
     .filter(Boolean)
     .join("-")
   const name = [
-    "nopecode",
+    "opencode",
     // changing to win32 flags npm for some reason
     base,
   ]
@@ -205,7 +205,7 @@ for (const item of targets) {
       autoloadTsconfig: true,
       autoloadPackageJson: true,
       target: `bun-${base}` as any,
-      outfile: `dist/${name}/bin/nopecode`,
+      outfile: `dist/${name}/bin/opencode`,
       execArgv: [`--user-agent=opencode/${Script.version}`, "--use-system-ca", "--"],
       windows: {},
     },
@@ -223,7 +223,7 @@ for (const item of targets) {
   if (process.platform === "darwin" && item.os === "darwin") {
     const identity = process.env.MACOS_SIGNING_IDENTITY || process.env.APPLE_SIGNING_IDENTITY
     if (identity?.includes("Developer ID Application")) {
-      await $`codesign --sign ${identity} --force --options runtime --timestamp dist/${name}/bin/nopecode`
+      await $`codesign --sign ${identity} --force --options runtime --timestamp dist/${name}/bin/opencode`
     }
   }
 

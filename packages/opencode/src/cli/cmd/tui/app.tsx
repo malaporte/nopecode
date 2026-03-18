@@ -359,7 +359,7 @@ function App() {
   const connected = useConnected()
   command.register(() => [
     {
-      title: "Update nopecode",
+      title: "Update opencode",
       value: "app.update",
       category: "Application",
       slash: {
@@ -399,7 +399,7 @@ function App() {
           return
         }
         toast.show({
-          message: `Updated to ${latest}. Restart nopecode to use it.`,
+          message: `Updated to ${latest}. Restart opencode to use it.`,
           variant: "success",
         })
       },

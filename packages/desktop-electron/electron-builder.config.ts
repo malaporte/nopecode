@@ -27,7 +27,7 @@ const getBase = (): Configuration => ({
     {
       from: "resources/",
       to: "",
-      filter: ["nopecode-cli*"],
+      filter: ["opencode-cli*"],
     },
     {
       from: "native/",

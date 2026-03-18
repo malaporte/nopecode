@@ -6,7 +6,7 @@ import { git } from "@/util/git"
 
 export const PrCommand = cmd({
   command: "pr <number>",
-  describe: "fetch and checkout a GitHub PR branch, then run nopecode",
+  describe: "fetch and checkout a GitHub PR branch, then run opencode",
   builder: (yargs) =>
     yargs.positional("number", {
       type: "number",
@@ -87,10 +87,10 @@ export const PrCommand = cmd({
               const sessionMatch = prInfo.body.match(/https:\/\/opncd\.ai\/s\/([a-zA-Z0-9_-]+)/)
               if (sessionMatch) {
                 const sessionUrl = sessionMatch[0]
-                UI.println(`Found nopecode session: ${sessionUrl}`)
+                UI.println(`Found opencode session: ${sessionUrl}`)
                 UI.println(`Importing session...`)
 
-                const importResult = await Process.text(["nopecode", "import", sessionUrl], {
+                const importResult = await Process.text(["opencode", "import", sessionUrl], {
                   nothrow: true,
                 })
                 if (importResult.code === 0) {
@@ -109,23 +109,23 @@ export const PrCommand = cmd({
 
         UI.println(`Successfully checked out PR #${prNumber} as branch '${localBranchName}'`)
         UI.println()
-        UI.println("Starting nopecode...")
+        UI.println("Starting opencode...")
         UI.println()
 
-        // Launch nopecode TUI with session ID if available
+        // Launch opencode TUI with session ID if available
         const { spawn } = await import("child_process")
-        const nopecodeArgs = sessionId ? ["-s", sessionId] : []
-        const nopecodeProcess = spawn("nopecode", nopecodeArgs, {
+        const tuiArgs = sessionId ? ["-s", sessionId] : []
+        const proc = spawn("opencode", tuiArgs, {
           stdio: "inherit",
           cwd: process.cwd(),
         })
 
         await new Promise<void>((resolve, reject) => {
-          nopecodeProcess.on("exit", (code) => {
+          proc.on("exit", (code) => {
             if (code === 0) resolve()
-            else reject(new Error(`nopecode exited with code ${code}`))
+            else reject(new Error(`opencode exited with code ${code}`))
           })
-          nopecodeProcess.on("error", reject)
+          proc.on("error", reject)
         })
       },
     })

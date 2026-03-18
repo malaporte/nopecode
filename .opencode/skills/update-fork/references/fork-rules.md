@@ -1,6 +1,6 @@
 # Fork Rules
 
-This repository is a forked build named `nopecode`, not stock OpenCode.
+This repository is a fork of upstream OpenCode maintained at `malaporte/nopecode`. It intentionally shares the CLI name, config path, install path, and release asset names with upstream to minimize merge diff.
 
 ## Defaults
 
@@ -12,9 +12,9 @@ This repository is a forked build named `nopecode`, not stock OpenCode.
 
 ## Preserve These Rules
 
-- Global config root is `~/.config/nopecode`
-- Installed CLI path is `~/.nopecode/bin/nopecode`
-- Release CLI assets are named `nopecode-*`
+- Global config root is `~/.config/opencode` (same as upstream)
+- Installed CLI path is `~/.opencode/bin/opencode` (same as upstream)
+- Release CLI assets are named `opencode-*` (same as upstream)
 - Project-local config conventions intentionally stay upstream-shaped, including `.opencode` and `opencode.json`
 
 - Allowed providers are only `openai` and `github-copilot`

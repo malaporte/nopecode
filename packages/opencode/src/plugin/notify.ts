@@ -52,7 +52,7 @@ async function send(title: string, message: string, sound: boolean) {
       `$xml = New-Object Windows.Data.Xml.Dom.XmlDocument`,
       `$xml.LoadXml("<toast><visual><binding template='ToastGeneric'><text>${esc(title)}</text><text>${esc(message)}</text></binding></visual></toast>")`,
       `$toast = [Windows.UI.Notifications.ToastNotification]::new($xml)`,
-      `$notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("nopecode")`,
+      `$notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("opencode")`,
       `$notifier.Show($toast)`,
     ].join("; ")
     await Bun.spawn(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script], {
@@ -77,7 +77,7 @@ export const NotifyPlugin: Plugin = async () => {
         const sessionID = event.properties.sessionID
         const info = await Session.get(SessionID.make(sessionID)).catch(() => undefined)
         const title = info?.title && !Session.isDefaultTitle(info.title) ? info.title : "Ready for review"
-        await send("nopecode", title, notify.sound ?? false)
+        await send("opencode", title, notify.sound ?? false)
         return
       }
 
@@ -85,7 +85,7 @@ export const NotifyPlugin: Plugin = async () => {
       if (!shouldNotify(seen, event)) return
       const err = event.properties.error
       const message = typeof err === "string" ? err : JSON.stringify(err)
-      await send("nopecode", message.slice(0, 120), notify.sound ?? false)
+      await send("opencode", message.slice(0, 120), notify.sound ?? false)
     },
   }
 }

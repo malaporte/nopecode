@@ -95,8 +95,8 @@ test("enabled_providers narrows within branch allowlist", async () => {
 })
 
 test("blocked provider from env is ignored", async () => {
-  const saved = process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
-  delete process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+  const saved = process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
+  delete process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
   try {
     await using tmp = await project()
     await Instance.provide({
@@ -110,13 +110,13 @@ test("blocked provider from env is ignored", async () => {
       },
     })
   } finally {
-    if (saved !== undefined) process.env["NOPECODE_ALLOW_ALL_PROVIDERS"] = saved
+    if (saved !== undefined) process.env["OPENCODE_ALLOW_ALL_PROVIDERS"] = saved
   }
 })
 
 test("blocked provider from config is ignored", async () => {
-  const saved = process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
-  delete process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+  const saved = process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
+  delete process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
   try {
     await using tmp = await project({
       $schema: "https://opencode.ai/config.json",
@@ -136,13 +136,13 @@ test("blocked provider from config is ignored", async () => {
       },
     })
   } finally {
-    if (saved !== undefined) process.env["NOPECODE_ALLOW_ALL_PROVIDERS"] = saved
+    if (saved !== undefined) process.env["OPENCODE_ALLOW_ALL_PROVIDERS"] = saved
   }
 })
 
 test("custom provider from config is ignored", async () => {
-  const saved = process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
-  delete process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+  const saved = process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
+  delete process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
   try {
     await using tmp = await project({
       $schema: "https://opencode.ai/config.json",
@@ -173,7 +173,7 @@ test("custom provider from config is ignored", async () => {
       },
     })
   } finally {
-    if (saved !== undefined) process.env["NOPECODE_ALLOW_ALL_PROVIDERS"] = saved
+    if (saved !== undefined) process.env["OPENCODE_ALLOW_ALL_PROVIDERS"] = saved
   }
 })
 
@@ -262,8 +262,8 @@ test("github-copilot filters grok models", async () => {
 })
 
 test("getModel throws for blocked provider", async () => {
-  const saved = process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
-  delete process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+  const saved = process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
+  delete process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
   try {
     await using tmp = await project()
     await Instance.provide({
@@ -278,7 +278,7 @@ test("getModel throws for blocked provider", async () => {
       },
     })
   } finally {
-    if (saved !== undefined) process.env["NOPECODE_ALLOW_ALL_PROVIDERS"] = saved
+    if (saved !== undefined) process.env["OPENCODE_ALLOW_ALL_PROVIDERS"] = saved
   }
 })
 

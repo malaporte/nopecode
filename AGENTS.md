@@ -6,8 +6,7 @@
 
 ## Branch Notes
 
-- This branch is a forked build named `nopecode`, not stock OpenCode. Preserve fork-specific naming and isolation changes unless explicitly asked to revert them.
-- Global config root is `~/.config/nopecode`. Installed CLI path is `~/.nopecode/bin/nopecode`. Release CLI assets are named `nopecode-*`.
+- This branch is a forked build maintained at `malaporte/nopecode`, but uses the same `opencode` CLI name, config path (`~/.config/opencode`), install path (`~/.opencode/bin`), and release asset names (`opencode-*`) as upstream to minimize merge diff.
 - Project-local config conventions are intentionally unchanged and still use upstream names like `.opencode` and `opencode.json`.
 - Provider policy is branch-specific:
   - only `openai` and `github-copilot` are allowed

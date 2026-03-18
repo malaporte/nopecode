@@ -21,7 +21,7 @@ export const dict = {
 
   "desktop.cli.installed.title": "CLI установлен",
   "desktop.cli.installed.message":
-    "CLI установлен в {{path}}\n\nПерезапустите терминал, чтобы использовать команду 'nopecode'.",
+    "CLI установлен в {{path}}\n\nПерезапустите терминал, чтобы использовать команду 'opencode'.",
   "desktop.cli.failed.title": "Ошибка установки",
   "desktop.cli.failed.message": "Не удалось установить CLI: {{error}}",
 }

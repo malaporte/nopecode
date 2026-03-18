@@ -39,7 +39,6 @@ Use this skill when working on upstream integration for this repository.
 
 ## Conflict Policy
 
-- Preserve nopecode naming, install paths, config paths, release asset names, and fork release workflow.
 - Preserve provider restrictions and blocked provider login behavior.
 - Preserve the custom plugin block and the built-in notification behavior.
 - Preserve autoupdate defaults and fork versioning rules.

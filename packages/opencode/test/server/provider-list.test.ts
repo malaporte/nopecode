@@ -86,8 +86,8 @@ afterEach(() => {
 
 describe("provider.list endpoint", () => {
   test("returns only allowed providers and strips copilot grok models", async () => {
-    const saved = process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
-    delete process.env["NOPECODE_ALLOW_ALL_PROVIDERS"]
+    const saved = process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
+    delete process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
     try {
       await using tmp = await tmpdir({
         config: {},
@@ -118,7 +118,7 @@ describe("provider.list endpoint", () => {
         },
       })
     } finally {
-      if (saved !== undefined) process.env["NOPECODE_ALLOW_ALL_PROVIDERS"] = saved
+      if (saved !== undefined) process.env["OPENCODE_ALLOW_ALL_PROVIDERS"] = saved
     }
   })
 })

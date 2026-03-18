@@ -419,17 +419,17 @@ jobs:
           assets=$(gh release view ${{ needs.release.outputs.tag }} --repo ${{ needs.release.outputs.repo }} --json assets --jq '.assets[].name')
           missing=0
           for name in \
-            nopecode-linux-arm64.tar.gz \
-            nopecode-linux-x64.tar.gz \
-            nopecode-linux-x64-baseline.tar.gz \
-            nopecode-linux-arm64-musl.tar.gz \
-            nopecode-linux-x64-musl.tar.gz \
-            nopecode-linux-x64-baseline-musl.tar.gz \
-            nopecode-darwin-arm64.zip \
-            nopecode-darwin-x64.zip \
-            nopecode-darwin-x64-baseline.zip \
-            nopecode-windows-x64.zip \
-            nopecode-windows-x64-baseline.zip
+            opencode-linux-arm64.tar.gz \
+            opencode-linux-x64.tar.gz \
+            opencode-linux-x64-baseline.tar.gz \
+            opencode-linux-arm64-musl.tar.gz \
+            opencode-linux-x64-musl.tar.gz \
+            opencode-linux-x64-baseline-musl.tar.gz \
+            opencode-darwin-arm64.zip \
+            opencode-darwin-x64.zip \
+            opencode-darwin-x64-baseline.zip \
+            opencode-windows-x64.zip \
+            opencode-windows-x64-baseline.zip
           do
             if ! printf '%s\n' "$assets" | grep -Fxq "$name"; then
               echo "Missing release asset: $name"

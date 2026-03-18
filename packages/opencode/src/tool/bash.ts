@@ -173,7 +173,7 @@ export const BashTool = Tool.define("bash", async () => {
       )
 
       const cfg = await Config.get()
-      const sandbox = cfg.sandbox?.enabled === false ? undefined : cfg.sandbox ?? {}
+      const sandbox = cfg.sandbox?.enabled === false ? undefined : (cfg.sandbox ?? {})
       const proc = sandbox
         ? spawn(sandbox.command || "pippin", ["run", params.command], {
             cwd,
@@ -281,8 +281,8 @@ export const BashTool = Tool.define("bash", async () => {
 
       if (sandbox && proc.exitCode && pippin(output)) {
         output =
-          "nopecode could not run this command because sandboxing is enabled by default and no valid `.pippin.toml` was found in this directory or any parent directory.\n\n" +
-          "To use nopecode here, add a valid `.pippin.toml` for pippin in this project or a parent directory.\n" +
+          "opencode could not run this command because sandboxing is enabled by default and no valid `.pippin.toml` was found in this directory or any parent directory.\n\n" +
+          "To use opencode here, add a valid `.pippin.toml` for pippin in this project or a parent directory.\n" +
           "If you need to work without pippin here, disable sandboxing for this workspace by setting `sandbox.enabled` to `false`.\n\n" +
           "<pippin_output>\n" +
           output.trim() +

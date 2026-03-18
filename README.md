@@ -43,9 +43,9 @@
 
 ---
 
-### What Is Nopecode?
+### What Is This Fork?
 
-Nopecode is a fork of OpenCode that keeps the upstream project structure while shipping a separate CLI, release channel, and fork-specific behavior. It is intended to stay broadly compatible with OpenCode, but it publishes its own builds as `nopecode` and uses the `malaporte/nopecode` release pipeline.
+This is a fork of OpenCode maintained at `malaporte/nopecode`. It keeps the upstream CLI name, config path, and release asset naming to minimize merge diff, but ships its own builds via the `malaporte/nopecode` release pipeline.
 
 Compared to upstream OpenCode, this fork intentionally narrows a few features:
 
@@ -55,15 +55,15 @@ Compared to upstream OpenCode, this fork intentionally narrows a few features:
 ### Maintaining The Fork
 
 Upstream OpenCode updates are maintained through the repo-local agent skill at `.opencode/skills/update-fork/`.
-The older scripted `sync-fork` workflow is intentionally removed in favor of agent-driven upstream integration that preserves nopecode-specific behavior.
+The older scripted `sync-fork` workflow is intentionally removed in favor of agent-driven upstream integration that preserves fork-specific behavior.
 
-### Install Nopecode
+### Install This Fork
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/malaporte/nopecode/main/install | bash
 ```
 
-This installs the forked `nopecode` CLI into `~/.nopecode/bin/nopecode`. It does not replace an existing upstream `opencode` binary.
+This installs the forked `opencode` CLI into `~/.opencode/bin/opencode`.
 
 ### Upstream OpenCode Installation
 

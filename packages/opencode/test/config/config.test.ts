@@ -67,31 +67,6 @@ test("loads config with defaults when no files exist", async () => {
   })
 })
 
-test("uses nopecode as the global config directory", () => {
-  expect(path.basename(Global.Path.config)).toBe("nopecode")
-})
-
-test("does not load global config from the legacy opencode directory", async () => {
-  await using tmp = await tmpdir()
-  const root = path.dirname(Global.Path.config)
-  await fs.mkdir(path.join(root, "opencode"), { recursive: true })
-  await Filesystem.write(
-    path.join(root, "opencode", "opencode.json"),
-    JSON.stringify({
-      $schema: "https://opencode.ai/config.json",
-      model: "legacy/model",
-    }),
-  )
-
-  await Instance.provide({
-    directory: tmp.path,
-    fn: async () => {
-      const cfg = await Config.get()
-      expect(cfg.model).not.toBe("legacy/model")
-    },
-  })
-})
-
 test("loads JSON config file", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
