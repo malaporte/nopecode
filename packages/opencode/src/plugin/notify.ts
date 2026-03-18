@@ -76,6 +76,7 @@ export const NotifyPlugin: Plugin = async () => {
         if (!shouldNotify(seen, event)) return
         const sessionID = event.properties.sessionID
         const info = await Session.get(SessionID.make(sessionID)).catch(() => undefined)
+        if (info?.parentID) return
         const title = info?.title && !Session.isDefaultTitle(info.title) ? info.title : "Ready for review"
         await send("opencode", title, notify.sound ?? false)
         return
@@ -83,6 +84,11 @@ export const NotifyPlugin: Plugin = async () => {
 
       if (event.type !== "session.error") return
       if (!shouldNotify(seen, event)) return
+      const sessionID = event.properties.sessionID
+      if (sessionID) {
+        const info = await Session.get(SessionID.make(sessionID)).catch(() => undefined)
+        if (info?.parentID) return
+      }
       const err = event.properties.error
       const message = typeof err === "string" ? err : JSON.stringify(err)
       await send("opencode", message.slice(0, 120), notify.sound ?? false)

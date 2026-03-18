@@ -94,6 +94,26 @@ describe("notify plugin", () => {
     })
   })
 
+  test("does not notify for subagent sessions", async () => {
+    const original = Bun.spawn
+    // @ts-expect-error test override
+    Bun.spawn = spawn
+    await using tmp = await tmpdir()
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const parent = await Session.create({ title: "Parent session" })
+        const child = await Session.create({ parentID: parent.id, title: "Subagent task" })
+        await Plugin.init()
+        SessionStatus.set(child.id, { type: "busy" })
+        SessionStatus.set(child.id, { type: "idle" })
+        await Bun.sleep(10)
+        expect(spawn).not.toHaveBeenCalled()
+      },
+    })
+    Bun.spawn = original
+  })
+
   test("does not spam repeated idle events", () => {
     const seen = new Set<string>()
     expect(
