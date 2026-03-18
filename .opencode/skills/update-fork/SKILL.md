@@ -1,6 +1,6 @@
 ---
 name: update-fork
-description: Update this nopecode fork from upstream OpenCode by integrating upstream dev into the fork, preserving fork-specific behavior, resolving conflicts, flagging incoming security-sensitive changes for deeper review, and preparing a PR-ready branch. Use when asked to sync this fork with upstream opencode, merge upstream changes, review upstream drift, assess upstream security impact, or prepare an upstream integration branch or PR.
+description: Update this nopecode fork from upstream OpenCode by integrating the latest upstream release tag into the fork, preserving fork-specific behavior, resolving conflicts, flagging incoming security-sensitive changes for deeper review, and preparing a PR-ready branch. Use when asked to sync this fork with upstream opencode, merge upstream changes, review upstream drift, assess upstream security impact, or prepare an upstream integration branch or PR.
 ---
 
 # Update Fork
@@ -12,14 +12,15 @@ Use this skill when working on upstream integration for this repository.
 1. Read `references/fork-rules.md` before changing code.
 2. Inspect git remotes and detect which remote is upstream OpenCode and which remote is the fork.
 3. Confirm the upstream default branch is `dev`.
-4. Branch from the fork target branch, usually `dev`, unless the user names a different base.
-5. Fetch both fork and upstream before diffing or merging.
-6. Review the upstream delta before merging so conflict hotspots are obvious.
-7. Identify incoming changes that warrant deeper security review before finalizing the merge.
-8. Merge upstream `dev` into the fork branch.
-9. Resolve conflicts by preserving fork behavior unless the user explicitly asks to revert it.
-10. Run focused validation in affected package directories.
-11. Summarize what changed, which fork rules were preserved, which security-sensitive changes need deeper review, and any remaining follow-up.
+4. Fetch both fork and upstream before diffing or merging.
+5. Identify the latest upstream release tag by running `git tag -l 'v[0-9]*' --sort=-version:refname | grep -v '^v1000' | head -1`. Report the tag and its commit to the user. If no upstream release tag is found, stop and report the problem.
+6. Branch from the fork target branch, usually `dev`, unless the user names a different base.
+7. Review the upstream delta (from the fork base to the release tag) before merging so conflict hotspots are obvious.
+8. Identify incoming changes that warrant deeper security review before finalizing the merge.
+9. Merge the latest upstream release tag into the fork branch. If the user explicitly asks to merge `dev` or a specific commit/tag, honour that request instead.
+10. Resolve conflicts by preserving fork behavior unless the user explicitly asks to revert it.
+11. Run focused validation in affected package directories.
+12. Summarize what changed, which fork rules were preserved, which security-sensitive incoming changes need deeper review, and any remaining follow-up.
 
 ## Remote Detection
 
@@ -31,7 +32,7 @@ Use this skill when working on upstream integration for this repository.
 
 ## Merge Policy
 
-- Prefer a normal merge of upstream `dev`; do not rebase the fork by default.
+- Prefer a normal merge of the latest upstream release tag (not bleeding-edge `dev`); do not rebase the fork by default.
 - Create a dedicated work branch before merging.
 - Keep merge history intact so fork-only changes stay easy to review.
 - If the merge is trivial, still inspect touched fork hotspots before finalizing.
@@ -64,7 +65,7 @@ Use this skill when working on upstream integration for this repository.
 
 - Leave the repo on a PR-ready branch when possible.
 - Report:
-  - upstream commit range or branch merged
+  - upstream release tag merged (and its commit range from the previous fork base)
   - conflicts resolved
   - fork-specific decisions preserved
   - security-sensitive incoming changes that need deeper review
