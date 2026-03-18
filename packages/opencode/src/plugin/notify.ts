@@ -8,6 +8,34 @@ function esc(input: string) {
   return input.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
 }
 
+const BUNDLE_IDS: Record<string, string> = {
+  Apple_Terminal: "com.apple.Terminal",
+  "iTerm.app": "com.googlecode.iterm2",
+  iTerm2: "com.googlecode.iterm2",
+  WezTerm: "com.github.wez.wezterm",
+  ghostty: "com.mitchellh.ghostty",
+  Alacritty: "org.alacritty",
+  kitty: "net.kovidgoyal.kitty",
+  vscode: "com.microsoft.VSCode",
+  tmux: "com.apple.Terminal",
+}
+
+export function sender() {
+  return BUNDLE_IDS[process.env.TERM_PROGRAM ?? ""] ?? "com.apple.Terminal"
+}
+
+let notifier: string | false | undefined
+export async function resolve() {
+  if (notifier !== undefined) return notifier
+  const found = Bun.which("terminal-notifier")
+  notifier = found || false
+  return notifier
+}
+
+export function reset() {
+  notifier = undefined
+}
+
 export function shouldNotify(seen: Set<string>, event: Event) {
   if (event.type === "session.status") {
     const sessionID = event.properties.sessionID
@@ -30,6 +58,13 @@ export function shouldNotify(seen: Set<string>, event: Event) {
 
 async function send(title: string, message: string, sound: boolean) {
   if (process.platform === "darwin") {
+    const bin = await resolve()
+    if (bin) {
+      const cmd = [bin, "-title", title, "-message", message, "-sender", sender()]
+      if (sound) cmd.push("-sound", "Glass")
+      await Bun.spawn(cmd, { stdout: "ignore", stderr: "ignore" }).exited.catch(() => undefined)
+      return
+    }
     const parts = [`display notification "${esc(message)}" with title "${esc(title)}"`]
     if (sound) parts.push(`sound name "Glass"`)
     await Bun.spawn(["osascript", "-e", parts.join(" ")], {

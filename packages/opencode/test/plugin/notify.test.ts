@@ -7,7 +7,7 @@ import { Session } from "../../src/session"
 import { SessionID } from "../../src/session/schema"
 import { Filesystem } from "../../src/util/filesystem"
 import path from "path"
-import { shouldNotify } from "../../src/plugin/notify"
+import { shouldNotify, sender, resolve, reset } from "../../src/plugin/notify"
 
 const spawn = mock(() => ({
   exited: Promise.resolve(0),
@@ -143,5 +143,43 @@ describe("notify plugin", () => {
         },
       } as any),
     ).toBe(false)
+  })
+
+  test("sender returns bundle ID for known terminals", () => {
+    const original = process.env.TERM_PROGRAM
+    try {
+      process.env.TERM_PROGRAM = "ghostty"
+      expect(sender()).toBe("com.mitchellh.ghostty")
+      process.env.TERM_PROGRAM = "iTerm.app"
+      expect(sender()).toBe("com.googlecode.iterm2")
+      process.env.TERM_PROGRAM = "WezTerm"
+      expect(sender()).toBe("com.github.wez.wezterm")
+      process.env.TERM_PROGRAM = "vscode"
+      expect(sender()).toBe("com.microsoft.VSCode")
+    } finally {
+      if (original !== undefined) process.env.TERM_PROGRAM = original
+      else delete process.env.TERM_PROGRAM
+    }
+  })
+
+  test("sender falls back to Terminal for unknown programs", () => {
+    const original = process.env.TERM_PROGRAM
+    try {
+      process.env.TERM_PROGRAM = "SomeObscureTerminal"
+      expect(sender()).toBe("com.apple.Terminal")
+      delete process.env.TERM_PROGRAM
+      expect(sender()).toBe("com.apple.Terminal")
+    } finally {
+      if (original !== undefined) process.env.TERM_PROGRAM = original
+      else delete process.env.TERM_PROGRAM
+    }
+  })
+
+  test("resolve caches result", async () => {
+    reset()
+    const first = await resolve()
+    const second = await resolve()
+    expect(first).toBe(second)
+    reset()
   })
 })
