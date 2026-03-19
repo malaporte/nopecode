@@ -1,5 +1,5 @@
 import { Prompt, type PromptRef } from "@tui/component/prompt"
-import { createEffect, createMemo, Match, on, onMount, Show, Switch } from "solid-js"
+import { createEffect, createMemo, createSignal, Match, on, onMount, Show, Switch } from "solid-js"
 import { useTheme } from "@tui/context/theme"
 import { useKeybind } from "@tui/context/keybind"
 import { Logo } from "../component/logo"
@@ -36,6 +36,7 @@ export function Home() {
   })
 
   const sandbox = createMemo(() => sync.data.config.sandbox?.enabled !== false)
+  const [sandboxHover, setSandboxHover] = createSignal(false)
 
   const isFirstTimeUser = createMemo(() => sync.data.session.length === 0)
   const tipsHidden = createMemo(() => kv.get("tips_hidden", false))
@@ -151,7 +152,14 @@ export function Home() {
             </text>
             <text fg={theme.textMuted}>/status</text>
           </Show>
-          <text fg={sandbox() ? theme.success : theme.warning}>{sandbox() ? "◆" : "◇"} Sandbox</text>
+          <text
+            fg={sandboxHover() ? theme.text : sandbox() ? theme.success : theme.warning}
+            onMouseOver={() => setSandboxHover(true)}
+            onMouseOut={() => setSandboxHover(false)}
+            onMouseUp={() => command.trigger("app.toggle.sandbox")}
+          >
+            {sandbox() ? "◆ Sandbox on" : "◇ Sandbox off"}
+          </text>
         </box>
         <box flexGrow={1} />
         <box flexShrink={0}>

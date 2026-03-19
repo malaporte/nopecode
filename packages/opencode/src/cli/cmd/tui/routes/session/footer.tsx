@@ -1,15 +1,17 @@
-import { createMemo, Match, onCleanup, onMount, Show, Switch } from "solid-js"
+import { createMemo, createSignal, Match, onCleanup, onMount, Show, Switch } from "solid-js"
 import { useTheme } from "../../context/theme"
 import { useSync } from "../../context/sync"
 import { useDirectory } from "../../context/directory"
 import { useConnected } from "../../component/dialog-model"
 import { createStore } from "solid-js/store"
 import { useRoute } from "../../context/route"
+import { useCommandDialog } from "../../component/dialog-command"
 
 export function Footer() {
   const { theme } = useTheme()
   const sync = useSync()
   const route = useRoute()
+  const command = useCommandDialog()
   const mcp = createMemo(() => Object.values(sync.data.mcp).filter((x) => x.status === "connected").length)
   const mcpError = createMemo(() => Object.values(sync.data.mcp).some((x) => x.status === "failed"))
   const lsp = createMemo(() => Object.keys(sync.data.lsp))
@@ -18,6 +20,7 @@ export function Footer() {
     return sync.data.permission[route.data.sessionID] ?? []
   })
   const sandbox = createMemo(() => sync.data.config.sandbox?.enabled !== false)
+  const [sandboxHover, setSandboxHover] = createSignal(false)
   const directory = useDirectory()
   const connected = useConnected()
 
@@ -83,10 +86,17 @@ export function Footer() {
                 {mcp()} MCP
               </text>
             </Show>
-            <text fg={sandbox() ? theme.success : theme.warning}>{sandbox() ? "◆" : "◇"} Sandbox</text>
             <text fg={theme.textMuted}>/status</text>
           </Match>
         </Switch>
+        <text
+          fg={sandboxHover() ? theme.text : sandbox() ? theme.success : theme.warning}
+          onMouseOver={() => setSandboxHover(true)}
+          onMouseOut={() => setSandboxHover(false)}
+          onMouseUp={() => command.trigger("app.toggle.sandbox")}
+        >
+          {sandbox() ? "◆ Sandbox on" : "◇ Sandbox off"}
+        </text>
       </box>
     </box>
   )
