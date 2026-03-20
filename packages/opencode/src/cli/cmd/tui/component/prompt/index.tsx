@@ -78,8 +78,6 @@ export function Prompt(props: PromptProps) {
   const renderer = useRenderer()
   const { theme, syntax } = useTheme()
   const kv = useKV()
-  const sandbox = createMemo(() => sync.data.config.sandbox?.enabled !== false)
-  const [sandboxHover, setSandboxHover] = createSignal(false)
 
   function promptModelWarning() {
     toast.show({
@@ -1144,14 +1142,6 @@ export function Prompt(props: PromptProps) {
           </Show>
           <Show when={status().type !== "retry"}>
             <box gap={2} flexDirection="row">
-              <text
-                fg={sandboxHover() ? theme.text : sandbox() ? theme.success : theme.warning}
-                onMouseOver={() => setSandboxHover(true)}
-                onMouseOut={() => setSandboxHover(false)}
-                onMouseUp={() => command.trigger("app.toggle.sandbox")}
-              >
-                {sandbox() ? "◆ Sandbox on" : "◇ Sandbox off"}
-              </text>
               <Switch>
                 <Match when={store.mode === "normal"}>
                   <Show when={local.model.variant.list().length > 0}>
