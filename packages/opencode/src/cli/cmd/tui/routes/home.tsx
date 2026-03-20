@@ -35,9 +35,6 @@ export function Home() {
     return Object.values(sync.data.mcp).filter((x) => x.status === "connected").length
   })
 
-  const sandbox = createMemo(() => sync.data.config.sandbox?.enabled !== false)
-  const [sandboxHover, setSandboxHover] = createSignal(false)
-
   const isFirstTimeUser = createMemo(() => sync.data.session.length === 0)
   const tipsHidden = createMemo(() => kv.get("tips_hidden", false))
   const showTips = createMemo(() => {
@@ -152,14 +149,6 @@ export function Home() {
             </text>
             <text fg={theme.textMuted}>/status</text>
           </Show>
-          <text
-            fg={sandboxHover() ? theme.text : sandbox() ? theme.success : theme.warning}
-            onMouseOver={() => setSandboxHover(true)}
-            onMouseOut={() => setSandboxHover(false)}
-            onMouseUp={() => command.trigger("app.toggle.sandbox")}
-          >
-            {sandbox() ? "◆ Sandbox on" : "◇ Sandbox off"}
-          </text>
         </box>
         <box flexGrow={1} />
         <box flexShrink={0}>
