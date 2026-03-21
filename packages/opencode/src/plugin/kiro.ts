@@ -54,7 +54,14 @@ interface CliToken {
 }
 
 function expiry(value: unknown): number {
-  const raw = value instanceof Date ? value.getTime() : typeof value === "string" ? Number(value) : value
+  const raw =
+    value instanceof Date
+      ? value.getTime()
+      : typeof value === "string"
+        ? Number.isFinite(Number(value))
+          ? Number(value)
+          : Date.parse(value)
+        : value
   if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return 0
   return raw < 1e12 ? raw * 1000 : raw
 }
@@ -89,19 +96,33 @@ function readCli(cfg: Config): CliToken | undefined {
     // read all auth_kv rows
     const rows = db.query("SELECT key, value FROM auth_kv").all() as Array<{ key: string; value: string }>
 
-    // find token row — look for keys containing ":token"
-    let token: any
-    let method: "idc" | "desktop" = "desktop"
-    for (const row of rows) {
-      if (!row.key.includes(":token")) continue
+    const candidates = rows.flatMap((row) => {
+      if (!row.key.includes(":token")) return []
       try {
         const parsed = JSON.parse(row.value)
-        if (!parsed.access_token && !parsed.accessToken) continue
-        token = parsed
-        method = row.key.includes("odic") ? "idc" : "desktop"
-        break
-      } catch {}
-    }
+        const access = parsed.access_token || parsed.accessToken
+        const refresh = parsed.refresh_token || parsed.refreshToken
+        if (!access || !refresh) return []
+        return [
+          {
+            row,
+            parsed,
+            expires: expiry(parsed.expires_at ?? parsed.expiresAt),
+            method:
+              row.key.toLowerCase().includes("oidc") || row.key.toLowerCase().includes("odic") ? "idc" : "desktop",
+          } as const,
+        ]
+      } catch {
+        return []
+      }
+    })
+
+    const match = candidates.sort((a, b) => {
+      if (a.method !== b.method) return a.method === "idc" ? -1 : 1
+      return b.expires - a.expires
+    })[0]
+    const token = match?.parsed
+    const method = match?.method ?? "desktop"
 
     if (!token) {
       log.info("kiro-cli: no token found in auth_kv")
@@ -159,6 +180,8 @@ function findCreds(obj: any): { clientId: string; clientSecret: string } | undef
   if (!obj || typeof obj !== "object") return undefined
   if (typeof obj.clientId === "string" && typeof obj.clientSecret === "string")
     return { clientId: obj.clientId, clientSecret: obj.clientSecret }
+  if (typeof obj.client_id === "string" && typeof obj.client_secret === "string")
+    return { clientId: obj.client_id, clientSecret: obj.client_secret }
   for (const v of Object.values(obj)) {
     const found = findCreds(v)
     if (found) return found
@@ -191,6 +214,12 @@ async function retryCli(cfg: Config) {
   if (!ok) return undefined
   const info = await Auth.get(PROVIDER_ID)
   return info && info.type === "oauth" ? info : undefined
+}
+
+async function latest(auth: Awaited<ReturnType<typeof retryCli>>, cfg: Config) {
+  if (!auth) return auth
+  if (auth.expires && auth.expires > 0) return auth
+  return (await retryCli(cfg)) ?? auth
 }
 
 // --- config ---
@@ -364,6 +393,8 @@ async function getAuth(dir: string) {
 export async function loadModels(dir: string) {
   const auth = await getAuth(dir).catch(() => undefined)
   if (!auth?.info) return KIRO_MODELS
+  const info = await latest(auth.info, auth.cfg)
+  if (!info || info.type !== "oauth") return KIRO_MODELS
 
   const query = new URLSearchParams({
     origin: "AI_EDITOR",
@@ -383,7 +414,7 @@ export async function loadModels(dir: string) {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        Authorization: `Bearer ${auth.info.access}`,
+        Authorization: `Bearer ${info.access}`,
         "x-amzn-codewhisperer-optout": "true",
         "x-amzn-kiro-agent-mode": "vibe",
         "x-amz-user-agent": "aws-sdk-js/3.738.0 KiroIDE",
@@ -441,8 +472,10 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
           apiKey: "",
           baseURL: base,
           async fetch(request: RequestInfo | URL, init?: RequestInit) {
-            let auth = await getAuth()
-            if (auth.type !== "oauth") return fetch(request, init)
+            const info = await getAuth()
+            if (!info || info.type !== "oauth") return fetch(request, init)
+            let auth = await latest(info, cfg)
+            if (!auth) return fetch(request, init)
 
             // refresh token if expired
             if (expired(auth, cfg.token_expiry_buffer_ms)) {
@@ -455,8 +488,9 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
                   access: refreshed.access,
                   expires: refreshed.expires,
                 })
-                auth = await getAuth()
-                if (auth.type !== "oauth") return fetch(request, init)
+                const next = await getAuth()
+                if (!next || next.type !== "oauth") return fetch(request, init)
+                auth = next
               } catch (err) {
                 log.error("kiro token refresh failed", { error: err instanceof Error ? err.message : String(err) })
                 throw err
