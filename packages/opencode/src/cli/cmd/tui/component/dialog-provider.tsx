@@ -19,8 +19,9 @@ const PROVIDER_PRIORITY: Record<string, number> = {
   "opencode-go": 1,
   openai: 2,
   "github-copilot": 3,
-  anthropic: 4,
-  google: 5,
+  kiro: 4,
+  anthropic: 5,
+  google: 6,
 }
 
 export function createDialogProviderOptions() {
@@ -38,6 +39,7 @@ export function createDialogProviderOptions() {
           opencode: "(Recommended)",
           anthropic: "(API key)",
           openai: "(ChatGPT Plus/Pro or API key)",
+          kiro: "(AWS Builder ID or IAM Identity Center)",
           "opencode-go": "Low cost subscription for everyone",
         }[provider.id],
         category: provider.id in PROVIDER_PRIORITY ? "Popular" : "Other",

@@ -39,7 +39,7 @@ export const ProviderRoutes = lazy(() =>
         const config = await Config.get()
         const disabled = new Set(config.disabled_providers ?? [])
         const enabled = config.enabled_providers ? new Set(config.enabled_providers) : undefined
-        const allowed = new Set(["github-copilot", "openai"])
+        const allowed = new Set(["github-copilot", "openai", "kiro"])
 
         const allProviders = await ModelsDev.get()
         const filteredProviders: Record<string, (typeof allProviders)[string]> = {}
@@ -58,10 +58,22 @@ export const ProviderRoutes = lazy(() =>
         }
 
         const connected = await Provider.list()
-        const providers = Object.assign(
-          mapValues(filteredProviders, (x) => Provider.fromModelsDevProvider(x)),
-          connected,
+        const database = await Provider.db()
+
+        // start with models.dev providers
+        const providers: Record<string, Provider.Info> = mapValues(filteredProviders, (x) =>
+          Provider.fromModelsDevProvider(x),
         )
+
+        // include database-only providers (e.g. kiro) that aren't in ModelsDev
+        for (const [id, info] of Object.entries(database)) {
+          if (!allowed.has(id) || filteredProviders[id] || disabled.has(id)) continue
+          if (enabled && !enabled.has(id)) continue
+          providers[id] = info
+        }
+
+        // overlay connected providers
+        Object.assign(providers, connected)
         return c.json({
           all: Object.values(providers),
           default: mapValues(providers, (item) => Provider.sort(Object.values(item.models))[0].id),

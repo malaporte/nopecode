@@ -46,6 +46,7 @@ import { GoogleAuth } from "google-auth-library"
 import { ProviderTransform } from "./transform"
 import { Installation } from "../installation"
 import { ModelID, ProviderID } from "./schema"
+import { KIRO_MODELS, loadModels as loadKiroModels } from "../plugin/kiro"
 
 const DEFAULT_CHUNK_TIMEOUT = 300_000
 
@@ -830,11 +831,50 @@ export namespace Provider {
     const modelsDev = await ModelsDev.get()
     const database = mapValues(modelsDev, fromModelsDevProvider)
 
+    const kiroModels = await loadKiroModels(Instance.directory).catch(() => KIRO_MODELS)
+
+    // inject kiro provider with models (not in models.dev)
+    database["kiro"] = {
+      id: ProviderID.kiro,
+      source: "custom",
+      name: "Kiro",
+      env: [],
+      options: {},
+      models: Object.fromEntries(
+        Object.entries(kiroModels).map(([id, m]) => [
+          id,
+          {
+            id: ModelID.make(id),
+            providerID: ProviderID.kiro,
+            api: { id, url: "", npm: "@ai-sdk/openai-compatible" },
+            name: m.name,
+            capabilities: {
+              temperature: false,
+              reasoning: m.thinking,
+              attachment: true,
+              toolcall: true,
+              input: { text: true, audio: false, image: true, video: false, pdf: false },
+              output: { text: true, audio: false, image: false, video: false, pdf: false },
+              interleaved: false,
+            },
+            cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+            limit: { context: m.context, input: m.input, output: m.output },
+            status: "active" as const,
+            options: {},
+            headers: {},
+            release_date: "2025-01-01",
+            variants: {} as Record<string, Record<string, any>>,
+            family: id.includes("claude") ? "claude" : id.toLowerCase().includes("qwen") ? "qwen" : "kiro",
+          } satisfies Model,
+        ]),
+      ),
+    }
+
     const disabled = new Set(config.disabled_providers ?? [])
     const enabled = config.enabled_providers ? new Set(config.enabled_providers) : null
 
     const unrestricted = process.env["OPENCODE_ALLOW_ALL_PROVIDERS"] === "1"
-    const allowed = new Set<string>(["github-copilot", "openai"])
+    const allowed = new Set<string>(["github-copilot", "openai", "kiro"])
     function isProviderAllowed(providerID: ProviderID): boolean {
       if (!unrestricted && !allowed.has(providerID)) return false
       if (enabled && !enabled.has(providerID)) return false
@@ -985,16 +1025,29 @@ export namespace Provider {
       if (!plugin.auth) continue
       const providerID = ProviderID.make(plugin.auth.provider)
       if (disabled.has(providerID)) continue
-
-      const auth = await Auth.get(providerID)
-      if (!auth) continue
       if (!plugin.auth.loader) continue
 
-      if (auth) {
+      let auth = await Auth.get(providerID)
+      if (!auth) {
+        // loader may auto-provision credentials (e.g. kiro-cli import) —
+        // call it, then re-check.  Wrap in try/catch so external plugins
+        // that assume auth is always present don't crash the init loop.
+        try {
+          await plugin.auth.loader(() => Auth.get(providerID) as any, database[plugin.auth.provider])
+        } catch {
+          // ignore auto-provision errors
+        }
+        auth = await Auth.get(providerID)
+        if (!auth) continue
+      }
+
+      try {
         const options = await plugin.auth.loader(() => Auth.get(providerID) as any, database[plugin.auth.provider])
         const opts = options ?? {}
         const patch: Partial<Info> = providers[providerID] ? { options: opts } : { source: "custom", options: opts }
         mergeProvider(providerID, patch)
+      } catch (err) {
+        log.error("plugin loader failed", { providerID, error: err instanceof Error ? err.message : String(err) })
       }
     }
 
@@ -1075,6 +1128,7 @@ export namespace Provider {
     return {
       models: languages,
       providers,
+      database,
       sdk,
       modelLoaders,
       varsLoaders,
@@ -1083,6 +1137,10 @@ export namespace Provider {
 
   export async function list() {
     return state().then((state) => state.providers)
+  }
+
+  export async function db() {
+    return state().then((state) => state.database)
   }
 
   async function getSDK(model: Model) {

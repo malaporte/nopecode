@@ -305,7 +305,7 @@ export const ProvidersLoginCommand = cmd({
 
         const disabled = new Set(config.disabled_providers ?? [])
         const enabled = config.enabled_providers ? new Set(config.enabled_providers) : undefined
-        const allowed = new Set(["github-copilot", "openai"])
+        const allowed = new Set(["github-copilot", "openai", "kiro"])
 
         const providers = await ModelsDev.get().then((x) => {
           const filtered: Record<string, (typeof x)[string]> = {}
@@ -322,10 +322,11 @@ export const ProvidersLoginCommand = cmd({
           opencode: 0,
           openai: 1,
           "github-copilot": 2,
-          google: 3,
-          anthropic: 4,
-          openrouter: 5,
-          vercel: 6,
+          kiro: 3,
+          google: 4,
+          anthropic: 5,
+          openrouter: 6,
+          vercel: 7,
         }
         const pluginProviders = resolvePluginProviders({
           hooks: await Plugin.list(),

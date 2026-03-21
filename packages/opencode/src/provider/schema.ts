@@ -22,6 +22,7 @@ export const ProviderID = providerIdSchema.pipe(
     azure: schema.makeUnsafe("azure"),
     openrouter: schema.makeUnsafe("openrouter"),
     mistral: schema.makeUnsafe("mistral"),
+    kiro: schema.makeUnsafe("kiro"),
   })),
 )
 
