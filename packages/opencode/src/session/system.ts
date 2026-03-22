@@ -13,6 +13,7 @@ import type { Provider } from "@/provider/provider"
 import type { Agent } from "@/agent/agent"
 import { PermissionNext } from "@/permission"
 import { Skill } from "@/skill"
+import { Config } from "@/config/config"
 
 export namespace SystemPrompt {
   export function instructions() {
@@ -31,7 +32,9 @@ export namespace SystemPrompt {
 
   export async function environment(model: Provider.Model) {
     const project = Instance.project
-    return [
+    const cfg = await Config.get()
+    const sandbox = cfg.sandbox?.enabled === false ? undefined : cfg.sandbox
+    const result = [
       [
         `You are powered by the model named ${model.api.id}. The exact model ID is ${model.providerID}/${model.api.id}`,
         `Here is some useful information about the environment you are running in:`,
@@ -54,6 +57,16 @@ export namespace SystemPrompt {
         `</directories>`,
       ].join("\n"),
     ]
+    if (sandbox) {
+      result.push(
+        [
+          `<sandbox>`,
+          `A sandboxed execution environment is active. Shell commands are executed inside a restricted container. Some system commands, network access, or filesystem paths outside the project may be unavailable or behave differently. If a command fails unexpectedly, consider whether sandbox restrictions may be the cause.`,
+          `</sandbox>`,
+        ].join("\n"),
+      )
+    }
+    return result
   }
 
   export async function skills(agent: Agent.Info) {
