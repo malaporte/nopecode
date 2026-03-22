@@ -1,5 +1,4 @@
 import type { Hooks, PluginInput } from "@opencode-ai/plugin"
-import { Database } from "bun:sqlite"
 import { Log } from "../util/log"
 import { Auth } from "../auth"
 import { transform, type Auth as KiroAuth } from "./kiro/request"
@@ -22,205 +21,6 @@ const SCOPES = [
   "codewhisperer:taskassist",
 ]
 const POLLING_MARGIN_MS = 3000
-
-// --- kiro-cli credential import ---
-
-function cliDbPath(): string | undefined {
-  const platform = process.platform
-  if (platform === "darwin")
-    return path.join(os.homedir(), "Library", "Application Support", "kiro-cli", "data.sqlite3")
-  if (platform === "win32")
-    return path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "kiro-cli", "data.sqlite3")
-  if (platform === "linux")
-    return path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config"), "kiro-cli", "data.sqlite3")
-  return undefined
-}
-
-function regionFromArn(arn: string): string | undefined {
-  // arn:aws:codewhisperer:us-east-1:123456789:profile/...
-  const m = arn.match(/^arn:aws[^:]*:codewhisperer:([^:]+):/)
-  return m?.[1]
-}
-
-interface CliToken {
-  access: string
-  refresh: string
-  expires: number
-  region: string
-  clientId?: string
-  clientSecret?: string
-  method: "idc" | "desktop"
-  profile?: string
-}
-
-function expiry(value: unknown): number {
-  const raw =
-    value instanceof Date
-      ? value.getTime()
-      : typeof value === "string"
-        ? Number.isFinite(Number(value))
-          ? Number(value)
-          : Date.parse(value)
-        : value
-  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return 0
-  return raw < 1e12 ? raw * 1000 : raw
-}
-
-function readCli(cfg: Config): CliToken | undefined {
-  const dbpath = cliDbPath()
-  if (!dbpath || !fs.existsSync(dbpath)) {
-    log.info("kiro-cli db not found", { path: dbpath })
-    return undefined
-  }
-
-  let db: InstanceType<typeof Database> | undefined
-  try {
-    db = new Database(dbpath, { readonly: true })
-
-    // read profile ARN from state table
-    let profile: string | undefined
-    try {
-      const row = db.query("SELECT value FROM state WHERE key = ?").get("api.codewhisperer.profile") as {
-        value: string
-      } | null
-      if (row) {
-        try {
-          const parsed = JSON.parse(row.value)
-          profile = typeof parsed === "string" ? parsed : parsed?.arn
-        } catch {
-          profile = row.value
-        }
-      }
-    } catch {}
-
-    // read all auth_kv rows
-    const rows = db.query("SELECT key, value FROM auth_kv").all() as Array<{ key: string; value: string }>
-
-    const candidates = rows.flatMap((row) => {
-      if (!row.key.includes(":token")) return []
-      try {
-        const parsed = JSON.parse(row.value)
-        const access = parsed.access_token || parsed.accessToken
-        const refresh = parsed.refresh_token || parsed.refreshToken
-        if (!access || !refresh) return []
-        return [
-          {
-            row,
-            parsed,
-            expires: expiry(parsed.expires_at ?? parsed.expiresAt),
-            method:
-              row.key.toLowerCase().includes("oidc") || row.key.toLowerCase().includes("odic") ? "idc" : "desktop",
-          } as const,
-        ]
-      } catch {
-        return []
-      }
-    })
-
-    const match = candidates.sort((a, b) => {
-      if (a.method !== b.method) return a.method === "idc" ? -1 : 1
-      return b.expires - a.expires
-    })[0]
-    const token = match?.parsed
-    const method = match?.method ?? "desktop"
-
-    if (!token) {
-      log.info("kiro-cli: no token found in auth_kv")
-      return undefined
-    }
-
-    // find client credentials from device-registration row
-    let clientId: string | undefined
-    let clientSecret: string | undefined
-    for (const row of rows) {
-      if (!row.key.includes("device-registration")) continue
-      try {
-        const parsed = JSON.parse(row.value)
-        // may be nested — search recursively for clientId
-        const found = findCreds(parsed)
-        if (found) {
-          clientId = found.clientId
-          clientSecret = found.clientSecret
-        }
-        break
-      } catch {}
-    }
-
-    const acc = token.access_token || token.accessToken
-    const rt = token.refresh_token || token.refreshToken
-    if (!acc || !rt) {
-      log.info("kiro-cli: token missing access or refresh")
-      return undefined
-    }
-
-    // normalize expires_at — could be seconds or milliseconds
-    const expires = expiry(token.expires_at ?? token.expiresAt)
-
-    const region = token.region || (profile ? regionFromArn(profile) : undefined) || cfg.default_region
-
-    return {
-      access: acc,
-      refresh: rt,
-      expires,
-      region,
-      clientId: clientId || token.client_id || token.clientId,
-      clientSecret: clientSecret || token.client_secret || token.clientSecret,
-      method,
-      profile,
-    }
-  } catch (err) {
-    log.error("kiro-cli read failed", { error: err instanceof Error ? err.message : String(err) })
-    return undefined
-  } finally {
-    db?.close()
-  }
-}
-
-function findCreds(obj: any): { clientId: string; clientSecret: string } | undefined {
-  if (!obj || typeof obj !== "object") return undefined
-  if (typeof obj.clientId === "string" && typeof obj.clientSecret === "string")
-    return { clientId: obj.clientId, clientSecret: obj.clientSecret }
-  if (typeof obj.client_id === "string" && typeof obj.client_secret === "string")
-    return { clientId: obj.client_id, clientSecret: obj.client_secret }
-  for (const v of Object.values(obj)) {
-    const found = findCreds(v)
-    if (found) return found
-  }
-  return undefined
-}
-
-async function syncCli(cfg: Config): Promise<boolean> {
-  const token = readCli(cfg)
-  if (!token) return false
-
-  log.info("kiro-cli: importing credentials", { region: token.region, method: token.method, profile: token.profile })
-
-  // update config with discovered values
-  if (token.profile) cfg.idc_profile_arn = token.profile
-  if (token.region !== cfg.default_region) cfg.default_region = token.region
-
-  await Auth.set(PROVIDER_ID, {
-    type: "oauth",
-    refresh: encode(token.refresh, token.clientId, token.clientSecret, token.method),
-    access: token.access,
-    expires: token.expires,
-  })
-
-  return true
-}
-
-async function retryCli(cfg: Config) {
-  const ok = await syncCli(cfg)
-  if (!ok) return undefined
-  const info = await Auth.get(PROVIDER_ID)
-  return info && info.type === "oauth" ? info : undefined
-}
-
-async function latest(auth: Awaited<ReturnType<typeof retryCli>>, cfg: Config) {
-  if (!auth) return auth
-  if (auth.expires && auth.expires > 0) return auth
-  return (await retryCli(cfg)) ?? auth
-}
 
 // --- config ---
 
@@ -366,14 +166,8 @@ function isThinking(model: string): boolean {
 
 async function getAuth(dir: string) {
   const cfg = loadConfig(dir)
-  const cli = readCli(cfg)
-  if (cli?.profile && !cfg.idc_profile_arn) cfg.idc_profile_arn = cli.profile
 
   let info = await Auth.get(PROVIDER_ID)
-  if ((!info || info.type !== "oauth") && cli) {
-    await syncCli(cfg)
-    info = await Auth.get(PROVIDER_ID)
-  }
   if (!info || info.type !== "oauth") return { cfg }
 
   if (expired(info, cfg.token_expiry_buffer_ms)) {
@@ -393,8 +187,6 @@ async function getAuth(dir: string) {
 export async function loadModels(dir: string) {
   const auth = await getAuth(dir).catch(() => undefined)
   if (!auth?.info) return KIRO_MODELS
-  const info = await latest(auth.info, auth.cfg)
-  if (!info || info.type !== "oauth") return KIRO_MODELS
 
   const query = new URLSearchParams({
     origin: "AI_EDITOR",
@@ -414,7 +206,7 @@ export async function loadModels(dir: string) {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        Authorization: `Bearer ${info.access}`,
+        Authorization: `Bearer ${auth.info.access}`,
         "x-amzn-codewhisperer-optout": "true",
         "x-amzn-kiro-agent-mode": "vibe",
         "x-amz-user-agent": "aws-sdk-js/3.738.0 KiroIDE",
@@ -448,21 +240,111 @@ export async function loadModels(dir: string) {
 export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
   const cfg = loadConfig(input.directory)
 
+  async function deviceCodeFlow(opts: { region: string; startUrl: string; method: string }) {
+    const oidc = `https://oidc.${opts.region}.amazonaws.com`
+
+    // register client
+    const regRes = await fetch(`${oidc}/client/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "User-Agent": "KiroIDE" },
+      body: JSON.stringify({
+        clientName: "Kiro IDE",
+        clientType: "public",
+        scopes: SCOPES,
+        grantTypes: ["urn:ietf:params:oauth:grant-type:device_code", "refresh_token"],
+      }),
+    })
+
+    if (!regRes.ok) {
+      const txt = await regRes.text().catch(() => "")
+      throw new Error(`Kiro client registration failed: ${regRes.status} ${txt.slice(0, 300)}`)
+    }
+
+    const reg: any = await regRes.json()
+    if (!reg.clientId || !reg.clientSecret) throw new Error("Kiro registration missing clientId/clientSecret")
+
+    // device authorization
+    const devRes = await fetch(`${oidc}/device_authorization`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "User-Agent": "KiroIDE" },
+      body: JSON.stringify({ clientId: reg.clientId, clientSecret: reg.clientSecret, startUrl: opts.startUrl }),
+    })
+
+    if (!devRes.ok) {
+      const txt = await devRes.text().catch(() => "")
+      throw new Error(`Kiro device authorization failed: ${devRes.status} ${txt.slice(0, 300)}`)
+    }
+
+    const dev: any = await devRes.json()
+    if (!dev.deviceCode || !dev.userCode || !dev.verificationUri)
+      throw new Error("Kiro device auth missing required fields")
+
+    const interval = (dev.interval || 5) * 1000
+    const maxTime = (dev.expiresIn || 600) * 1000
+
+    return {
+      url: dev.verificationUriComplete || dev.verificationUri,
+      instructions: `Enter code: ${dev.userCode}`,
+      method: "auto" as const,
+      async callback() {
+        const deadline = Date.now() + maxTime
+        let delay = interval
+
+        while (Date.now() < deadline) {
+          await sleep(delay + POLLING_MARGIN_MS)
+
+          const res = await fetch(`${oidc}/token`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "User-Agent": "KiroIDE" },
+            body: JSON.stringify({
+              clientId: reg.clientId,
+              clientSecret: reg.clientSecret,
+              deviceCode: dev.deviceCode,
+              grantType: "urn:ietf:params:oauth:grant-type:device_code",
+            }),
+          })
+
+          const txt = await res.text()
+          let data: any = {}
+          try {
+            data = JSON.parse(txt)
+          } catch {
+            data = {}
+          }
+
+          if (data.error === "authorization_pending") continue
+          if (data.error === "slow_down") {
+            delay += 5000
+            continue
+          }
+          if (data.error === "expired_token" || data.error === "access_denied") return { type: "failed" as const }
+          if (data.error) return { type: "failed" as const }
+
+          const acc = data.access_token || data.accessToken
+          const rt = data.refresh_token || data.refreshToken
+          if (acc && rt) {
+            const expires = Date.now() + (data.expires_in || data.expiresIn || 3600) * 1000
+            return {
+              type: "success" as const,
+              refresh: encode(rt, reg.clientId, reg.clientSecret, opts.method),
+              access: acc,
+              expires,
+            }
+          }
+
+          if (!res.ok) return { type: "failed" as const }
+        }
+
+        return { type: "failed" as const }
+      },
+    }
+  }
+
   return {
     auth: {
       provider: PROVIDER_ID,
       async loader(getAuth) {
-        let info = await getAuth()
-        const cli = !cfg.idc_profile_arn ? readCli(cfg) : undefined
-        if (cli?.profile) cfg.idc_profile_arn = cli.profile
-
-        // auto-import from kiro-cli if no credentials stored
-        if (!info || info.type !== "oauth") {
-          log.info("no kiro credentials, attempting kiro-cli import")
-          const ok = await syncCli(cfg)
-          if (ok) info = await getAuth()
-        }
-
+        const info = await getAuth()
         if (!info || info.type !== "oauth") return {}
 
         const region = cfg.default_region
@@ -474,7 +356,7 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
           async fetch(request: RequestInfo | URL, init?: RequestInit) {
             const info = await getAuth()
             if (!info || info.type !== "oauth") return fetch(request, init)
-            let auth = await latest(info, cfg)
+            let auth = info
             if (!auth) return fetch(request, init)
 
             // refresh token if expired
@@ -532,26 +414,6 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
 
             let res = await fetch(prepared.url, prepared.init)
 
-            if (res.status === 401) {
-              log.warn("kiro request unauthorized, retrying from kiro-cli")
-              const next = await retryCli(cfg)
-              if (next) {
-                prepared = transform(
-                  request instanceof URL ? request.href : request.toString(),
-                  parsed,
-                  model,
-                  {
-                    access: next.access,
-                    region,
-                    profileArn: cfg.idc_profile_arn,
-                  },
-                  think,
-                  budget,
-                )
-                res = await fetch(prepared.url, prepared.init)
-              }
-            }
-
             if (!res.ok) {
               const txt = await res.text().catch(() => "")
               log.error("kiro api error", { status: res.status, body: txt.slice(0, 500) })
@@ -588,58 +450,21 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
       methods: [
         {
           type: "oauth" as const,
-          label: "Import from kiro-cli",
+          label: "Login with AWS Builder ID",
           async authorize() {
-            const token = readCli(cfg)
-            if (!token) throw new Error("kiro-cli not found or has no credentials. Install kiro-cli and log in first.")
-
-            // update config with discovered values
-            if (token.profile) cfg.idc_profile_arn = token.profile
-            if (token.region !== cfg.default_region) cfg.default_region = token.region
-
-            // store credentials and return immediately — no browser needed
-            const encoded = encode(token.refresh, token.clientId, token.clientSecret, token.method)
-            await Auth.set(PROVIDER_ID, {
-              type: "oauth",
-              refresh: encoded,
-              access: token.access,
-              expires: token.expires,
-            })
-
-            return {
-              url: "about:blank",
-              instructions: "Importing credentials from kiro-cli...",
-              method: "auto" as const,
-              async callback() {
-                return {
-                  type: "success" as const,
-                  refresh: encoded,
-                  access: token.access,
-                  expires: token.expires,
-                }
-              },
-            }
+            const region = cfg.default_region
+            return deviceCodeFlow({ region, startUrl: BUILDER_ID_START_URL, method: "idc" })
           },
         },
         {
           type: "oauth" as const,
-          label: "Login with AWS Builder ID",
+          label: "Login with IAM Identity Center",
           prompts: [
-            {
-              type: "select" as const,
-              key: "authType",
-              message: "Select authentication type",
-              options: [
-                { label: "AWS Builder ID", value: "builder", hint: "Free personal account" },
-                { label: "IAM Identity Center", value: "idc", hint: "Organization SSO" },
-              ],
-            },
             {
               type: "text" as const,
               key: "startUrl",
               message: "Enter your IAM Identity Center start URL",
               placeholder: "https://d-xxxxxxxxxx.awsapps.com/start",
-              condition: (inputs: Record<string, string>) => inputs.authType === "idc",
               validate: (value: string) => {
                 if (!value) return "Start URL is required"
                 try {
@@ -655,7 +480,6 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
               key: "region",
               message: "Enter AWS region",
               placeholder: cfg.idc_region || cfg.default_region,
-              condition: (inputs: Record<string, string>) => inputs.authType === "idc",
               validate: (value: string) => {
                 if (!value) return undefined // will use default
                 if (!/^[a-z]{2}-[a-z]+-\d+$/.test(value)) return "Invalid region format (e.g., us-east-1)"
@@ -664,107 +488,9 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
             },
           ],
           async authorize(inputs = {}) {
-            const idc = inputs.authType === "idc"
             const region = inputs.region || cfg.idc_region || cfg.default_region
-            const startUrl = idc ? inputs.startUrl || cfg.idc_start_url || BUILDER_ID_START_URL : BUILDER_ID_START_URL
-            const oidc = `https://oidc.${region}.amazonaws.com`
-
-            // register client
-            const regRes = await fetch(`${oidc}/client/register`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "User-Agent": "KiroIDE" },
-              body: JSON.stringify({
-                clientName: "Kiro IDE",
-                clientType: "public",
-                scopes: SCOPES,
-                grantTypes: ["urn:ietf:params:oauth:grant-type:device_code", "refresh_token"],
-              }),
-            })
-
-            if (!regRes.ok) {
-              const txt = await regRes.text().catch(() => "")
-              throw new Error(`Kiro client registration failed: ${regRes.status} ${txt.slice(0, 300)}`)
-            }
-
-            const reg: any = await regRes.json()
-            if (!reg.clientId || !reg.clientSecret) throw new Error("Kiro registration missing clientId/clientSecret")
-
-            // device authorization
-            const devRes = await fetch(`${oidc}/device_authorization`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "User-Agent": "KiroIDE" },
-              body: JSON.stringify({ clientId: reg.clientId, clientSecret: reg.clientSecret, startUrl }),
-            })
-
-            if (!devRes.ok) {
-              const txt = await devRes.text().catch(() => "")
-              throw new Error(`Kiro device authorization failed: ${devRes.status} ${txt.slice(0, 300)}`)
-            }
-
-            const dev: any = await devRes.json()
-            if (!dev.deviceCode || !dev.userCode || !dev.verificationUri)
-              throw new Error("Kiro device auth missing required fields")
-
-            const interval = (dev.interval || 5) * 1000
-            const maxTime = (dev.expiresIn || 600) * 1000
-
-            return {
-              url: dev.verificationUriComplete || dev.verificationUri,
-              instructions: `Enter code: ${dev.userCode}`,
-              method: "auto" as const,
-              async callback() {
-                const deadline = Date.now() + maxTime
-                let delay = interval
-
-                while (Date.now() < deadline) {
-                  await sleep(delay + POLLING_MARGIN_MS)
-
-                  const res = await fetch(`${oidc}/token`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "User-Agent": "KiroIDE" },
-                    body: JSON.stringify({
-                      clientId: reg.clientId,
-                      clientSecret: reg.clientSecret,
-                      deviceCode: dev.deviceCode,
-                      grantType: "urn:ietf:params:oauth:grant-type:device_code",
-                    }),
-                  })
-
-                  const txt = await res.text()
-                  let data: any = {}
-                  try {
-                    data = JSON.parse(txt)
-                  } catch {
-                    data = {}
-                  }
-
-                  if (data.error === "authorization_pending") continue
-                  if (data.error === "slow_down") {
-                    delay += 5000
-                    continue
-                  }
-                  if (data.error === "expired_token" || data.error === "access_denied")
-                    return { type: "failed" as const }
-                  if (data.error) return { type: "failed" as const }
-
-                  const acc = data.access_token || data.accessToken
-                  const rt = data.refresh_token || data.refreshToken
-                  if (acc && rt) {
-                    const expires = Date.now() + (data.expires_in || data.expiresIn || 3600) * 1000
-                    return {
-                      type: "success" as const,
-                      refresh: encode(rt, reg.clientId, reg.clientSecret, "idc"),
-                      access: acc,
-                      expires,
-                    }
-                  }
-
-                  if (!res.ok) return { type: "failed" as const }
-                }
-
-                return { type: "failed" as const }
-              },
-            }
+            const startUrl = inputs.startUrl || cfg.idc_start_url || BUILDER_ID_START_URL
+            return deviceCodeFlow({ region, startUrl, method: "idc" })
           },
         },
       ],

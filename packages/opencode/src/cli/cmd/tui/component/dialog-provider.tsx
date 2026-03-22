@@ -2,13 +2,13 @@ import { createMemo, createSignal, onMount, Show } from "solid-js"
 import { useSync } from "@tui/context/sync"
 import { map, pipe, sortBy } from "remeda"
 import { DialogSelect } from "@tui/ui/dialog-select"
-import { useDialog } from "@tui/ui/dialog"
+import { useDialog, type DialogContext } from "@tui/ui/dialog"
 import { useSDK } from "../context/sdk"
 import { DialogPrompt } from "../ui/dialog-prompt"
 import { Link } from "../ui/link"
 import { useTheme } from "../context/theme"
 import { TextAttributes } from "@opentui/core"
-import type { ProviderAuthAuthorization } from "@opencode-ai/sdk/v2"
+import type { ProviderAuthAuthorization, ProviderAuthMethod } from "@opencode-ai/sdk/v2"
 import { DialogModel } from "./dialog-model"
 import { useKeyboard } from "@opentui/solid"
 import { Clipboard } from "@tui/util/clipboard"
@@ -22,6 +22,48 @@ const PROVIDER_PRIORITY: Record<string, number> = {
   kiro: 4,
   anthropic: 5,
   google: 6,
+}
+
+async function collectInputs(
+  method: ProviderAuthMethod,
+  dialog: DialogContext,
+): Promise<Record<string, string> | null> {
+  const prompts = method.prompts
+  if (!prompts?.length) return {}
+  const inputs: Record<string, string> = {}
+  for (const prompt of prompts) {
+    if (prompt.condition && inputs[prompt.condition.key] !== prompt.condition.value) continue
+    if (prompt.type === "select") {
+      const value = await new Promise<string | null>((resolve) => {
+        dialog.replace(
+          () => (
+            <DialogSelect<string>
+              title={prompt.message}
+              options={prompt.options.map((o) => ({
+                title: o.label,
+                value: o.value,
+                description: o.hint,
+              }))}
+              onSelect={(option) => resolve(option.value)}
+            />
+          ),
+          () => resolve(null),
+        )
+      })
+      if (value == null) return null
+      inputs[prompt.key] = value
+    }
+    if (prompt.type === "text") {
+      // small delay to let previous dialog fully unmount and keyboard handlers clean up
+      await new Promise((r) => setTimeout(r, 10))
+      const value = await DialogPrompt.show(dialog, prompt.message, {
+        placeholder: prompt.placeholder,
+      })
+      if (value == null) return null
+      inputs[prompt.key] = value
+    }
+  }
+  return inputs
 }
 
 export function createDialogProviderOptions() {
@@ -71,9 +113,12 @@ export function createDialogProviderOptions() {
           if (index == null) return
           const method = methods[index]
           if (method.type === "oauth") {
+            const inputs = await collectInputs(method, dialog)
+            if (inputs == null) return
             const result = await sdk.client.provider.oauth.authorize({
               providerID: provider.id,
               method: index,
+              inputs: Object.keys(inputs).length > 0 ? inputs : undefined,
             })
             if (result.data?.method === "code") {
               dialog.replace(() => (

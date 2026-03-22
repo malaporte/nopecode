@@ -1,4 +1,4 @@
-import type { ProviderAuthAuthorization } from "@opencode-ai/sdk/v2/client"
+import type { ProviderAuthAuthorization, ProviderAuthMethod } from "@opencode-ai/sdk/v2/client"
 import { Button } from "@opencode-ai/ui/button"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { Dialog } from "@opencode-ai/ui/dialog"
@@ -6,10 +6,11 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { List, type ListRef } from "@opencode-ai/ui/list"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
+import { RadioGroup } from "@opencode-ai/ui/radio-group"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { TextField } from "@opencode-ai/ui/text-field"
 import { showToast } from "@opencode-ai/ui/toast"
-import { createMemo, Match, onCleanup, onMount, Switch } from "solid-js"
+import { createMemo, For, Match, onCleanup, onMount, Switch } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import { Link } from "@/components/link"
 import { useLanguage } from "@/context/language"
@@ -49,16 +50,19 @@ export function DialogConnectProvider(props: { provider: string }) {
   const [store, setStore] = createStore({
     methodIndex: undefined as undefined | number,
     authorization: undefined as undefined | ProviderAuthAuthorization,
-    state: "pending" as undefined | "pending" | "complete" | "error",
+    state: "pending" as undefined | "pending" | "prompts" | "complete" | "error",
     error: undefined as string | undefined,
+    inputs: {} as Record<string, string>,
   })
 
   type Action =
     | { type: "method.select"; index: number }
     | { type: "method.reset" }
     | { type: "auth.pending" }
+    | { type: "auth.prompts" }
     | { type: "auth.complete"; authorization: ProviderAuthAuthorization }
     | { type: "auth.error"; error: string }
+    | { type: "input.set"; key: string; value: string }
 
   function dispatch(action: Action) {
     setStore(
@@ -68,6 +72,7 @@ export function DialogConnectProvider(props: { provider: string }) {
           draft.authorization = undefined
           draft.state = undefined
           draft.error = undefined
+          draft.inputs = {}
           return
         }
         if (action.type === "method.reset") {
@@ -75,6 +80,7 @@ export function DialogConnectProvider(props: { provider: string }) {
           draft.authorization = undefined
           draft.state = undefined
           draft.error = undefined
+          draft.inputs = {}
           return
         }
         if (action.type === "auth.pending") {
@@ -82,10 +88,19 @@ export function DialogConnectProvider(props: { provider: string }) {
           draft.error = undefined
           return
         }
+        if (action.type === "auth.prompts") {
+          draft.state = "prompts"
+          draft.error = undefined
+          return
+        }
         if (action.type === "auth.complete") {
           draft.state = "complete"
           draft.authorization = action.authorization
           draft.error = undefined
+          return
+        }
+        if (action.type === "input.set") {
+          draft.inputs[action.key] = action.value
           return
         }
         draft.state = "error"
@@ -130,37 +145,52 @@ export function DialogConnectProvider(props: { provider: string }) {
     dispatch({ type: "method.select", index })
 
     if (method.type === "oauth") {
-      dispatch({ type: "auth.pending" })
-      const start = Date.now()
-      await globalSDK.client.provider.oauth
-        .authorize(
-          {
-            providerID: props.provider,
-            method: index,
-          },
-          { throwOnError: true },
-        )
-        .then((x) => {
-          if (!alive.value) return
-          const elapsed = Date.now() - start
-          const delay = 1000 - elapsed
-
-          if (delay > 0) {
-            if (timer.current !== undefined) clearTimeout(timer.current)
-            timer.current = setTimeout(() => {
-              timer.current = undefined
-              if (!alive.value) return
-              dispatch({ type: "auth.complete", authorization: x.data! })
-            }, delay)
-            return
-          }
-          dispatch({ type: "auth.complete", authorization: x.data! })
-        })
-        .catch((e) => {
-          if (!alive.value) return
-          dispatch({ type: "auth.error", error: formatError(e, language.t("common.requestFailed")) })
-        })
+      // If the method has prompts, show them before calling authorize
+      const visible = visiblePrompts(method, {})
+      if (visible.length > 0) {
+        dispatch({ type: "auth.prompts" })
+        return
+      }
+      await runAuthorize(index, {})
     }
+  }
+
+  async function runAuthorize(index: number, inputs: Record<string, string>) {
+    dispatch({ type: "auth.pending" })
+    const start = Date.now()
+    await globalSDK.client.provider.oauth
+      .authorize(
+        {
+          providerID: props.provider,
+          method: index,
+          inputs: Object.keys(inputs).length > 0 ? inputs : undefined,
+        },
+        { throwOnError: true },
+      )
+      .then((x) => {
+        if (!alive.value) return
+        const elapsed = Date.now() - start
+        const delay = 1000 - elapsed
+
+        if (delay > 0) {
+          if (timer.current !== undefined) clearTimeout(timer.current)
+          timer.current = setTimeout(() => {
+            timer.current = undefined
+            if (!alive.value) return
+            dispatch({ type: "auth.complete", authorization: x.data! })
+          }, delay)
+          return
+        }
+        dispatch({ type: "auth.complete", authorization: x.data! })
+      })
+      .catch((e) => {
+        if (!alive.value) return
+        dispatch({ type: "auth.error", error: formatError(e, language.t("common.requestFailed")) })
+      })
+  }
+
+  function visiblePrompts(method: ProviderAuthMethod, inputs: Record<string, string>) {
+    return (method.prompts ?? []).filter((p) => !p.condition || inputs[p.condition.key] === p.condition.value)
   }
 
   let listRef: ListRef | undefined
@@ -305,6 +335,59 @@ export function DialogConnectProvider(props: { provider: string }) {
           </Button>
         </form>
       </div>
+    )
+  }
+
+  function PromptsView() {
+    const visible = createMemo(() => {
+      const m = method()
+      if (!m) return []
+      return visiblePrompts(m, store.inputs)
+    })
+
+    async function handleSubmit(e: SubmitEvent) {
+      e.preventDefault()
+      await runAuthorize(store.methodIndex!, { ...store.inputs })
+    }
+
+    return (
+      <form onSubmit={handleSubmit} class="flex flex-col gap-6">
+        <For each={visible()}>
+          {(prompt) => (
+            <Switch>
+              <Match when={prompt.type === "select" && prompt}>
+                {(p) => (
+                  <div class="flex flex-col gap-2">
+                    <div class="text-14-regular text-text-base">{p().message}</div>
+                    <RadioGroup
+                      options={p().options}
+                      value={(o) => o.value}
+                      label={(o) => o.label}
+                      current={p().options.find((o) => o.value === store.inputs[p().key])}
+                      onSelect={(o) => o && dispatch({ type: "input.set", key: p().key, value: o.value })}
+                    />
+                  </div>
+                )}
+              </Match>
+              <Match when={prompt.type === "text" && prompt}>
+                {(p) => (
+                  <TextField
+                    autofocus
+                    type="text"
+                    label={p().message}
+                    placeholder={p().placeholder}
+                    value={store.inputs[p().key] ?? ""}
+                    onChange={(v) => dispatch({ type: "input.set", key: p().key, value: v })}
+                  />
+                )}
+              </Match>
+            </Switch>
+          )}
+        </For>
+        <Button class="w-auto" type="submit" size="large" variant="primary">
+          {language.t("common.submit")}
+        </Button>
+      </form>
     )
   }
 
@@ -477,6 +560,9 @@ export function DialogConnectProvider(props: { provider: string }) {
                     <span>{language.t("provider.connect.status.failed", { error: store.error ?? "" })}</span>
                   </div>
                 </div>
+              </Match>
+              <Match when={store.state === "prompts"}>
+                <PromptsView />
               </Match>
               <Match when={method()?.type === "api"}>
                 <ApiAuthView />

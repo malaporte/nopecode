@@ -1794,9 +1794,36 @@ export type SubtaskPartInput = {
   command?: string
 }
 
+export type ProviderAuthPrompt =
+  | {
+      type: "text"
+      key: string
+      message: string
+      placeholder?: string
+      condition?: {
+        key: string
+        value: string
+      }
+    }
+  | {
+      type: "select"
+      key: string
+      message: string
+      options: Array<{
+        label: string
+        value: string
+        hint?: string
+      }>
+      condition?: {
+        key: string
+        value: string
+      }
+    }
+
 export type ProviderAuthMethod = {
   type: "oauth" | "api"
   label: string
+  prompts?: Array<ProviderAuthPrompt>
 }
 
 export type ProviderAuthAuthorization = {
@@ -4011,6 +4038,12 @@ export type ProviderOauthAuthorizeData = {
      * Auth method index
      */
     method: number
+    /**
+     * Prompt inputs collected by client
+     */
+    inputs?: {
+      [key: string]: string
+    }
   }
   path: {
     /**
