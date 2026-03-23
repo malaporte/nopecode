@@ -100,14 +100,26 @@ other packages with the new version automatically during the publish step.
 
 Verify the change looks correct before committing.
 
-### Step 5: Commit the Version Bump
+### Step 5: Update bun.lock
+
+The lockfile embeds the version from `packages/opencode/package.json`. Regenerate
+it so the two stay in sync:
 
 ```bash
-git add packages/opencode/package.json
+bun install
+```
+
+Verify that `bun.lock` shows the new version, then stage it alongside the
+package file.
+
+### Step 6: Commit the Version Bump
+
+```bash
+git add packages/opencode/package.json bun.lock
 git commit -m "chore: bump version to v{new_version}"
 ```
 
-### Step 6: Create the Git Tag
+### Step 7: Create the Git Tag
 
 Check that the tag does not already exist:
 
@@ -123,13 +135,13 @@ Otherwise create the tag:
 git tag v{new_version}
 ```
 
-### Step 7: Push Commit and Tag
+### Step 8: Push Commit and Tag
 
 ```bash
 git push && git push --tags
 ```
 
-### Step 8: Confirm
+### Step 9: Confirm
 
 Report success:
 
@@ -145,7 +157,8 @@ for all platforms, assemble desktop installers, and publish the GitHub release.
 - **Version floor:** fork versions must always be `>= 1000.0.0` to distinguish
   them from upstream OpenCode releases.
 - **Only one file to update:** `packages/opencode/package.json` is the sole
-  version source of truth. CI stamps all other packages automatically.
+  version source of truth. CI stamps all other packages automatically. The
+  `bun.lock` file must also be regenerated after bumping so it stays in sync.
 - **Workflow guard:** `publish-fork.yml` has `if: github.repository == 'malaporte/nopecode'`
   — it will not run if the tag is pushed to a fork of the fork.
 - **GitHub-only release:** no npm, Docker image, AUR, or Homebrew formula is
