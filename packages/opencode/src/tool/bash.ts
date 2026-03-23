@@ -75,6 +75,12 @@ export const BashTool = Tool.define("bash", async () => {
         .describe(
           "Clear, concise description of what this command does in 5-10 words. Examples:\nInput: ls\nOutput: Lists files in current directory\n\nInput: git status\nOutput: Shows working tree status\n\nInput: npm install\nOutput: Installs package dependencies\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
         ),
+      unsandboxed: z
+        .boolean()
+        .describe(
+          "Set to true to run this command on the host instead of inside the sandbox. Requires user approval. Only use when the command genuinely cannot work inside the sandbox.",
+        )
+        .optional(),
     }),
     async execute(params, ctx) {
       const cwd = params.workdir || Instance.directory
@@ -168,30 +174,40 @@ export const BashTool = Tool.define("bash", async () => {
 
       const cfg = await Config.get()
       const sandbox = cfg.sandbox?.enabled === false ? undefined : (cfg.sandbox ?? {})
-      const proc = sandbox
-        ? spawn(sandbox.command || "pippin", ["run", params.command], {
-            cwd,
-            env: {
-              ...process.env,
-              ...shellEnv.env,
-              ...(sandbox.host ? { PIPPIN_HOST: sandbox.host } : {}),
-              ...(sandbox.port ? { PIPPIN_PORT: String(sandbox.port) } : {}),
-            },
-            stdio: ["ignore", "pipe", "pipe"],
-            detached: process.platform !== "win32",
-            windowsHide: process.platform === "win32",
-          })
-        : spawn(params.command, {
-            shell,
-            cwd,
-            env: {
-              ...process.env,
-              ...shellEnv.env,
-            },
-            stdio: ["ignore", "pipe", "pipe"],
-            detached: process.platform !== "win32",
-            windowsHide: process.platform === "win32",
-          })
+      const bypass = sandbox && params.unsandboxed
+      if (bypass) {
+        await ctx.ask({
+          permission: "unsandboxed_bash",
+          patterns: Array.from(patterns.size > 0 ? patterns : [params.command]),
+          always: Array.from(always.size > 0 ? always : [params.command]),
+          metadata: {},
+        })
+      }
+      const proc =
+        sandbox && !bypass
+          ? spawn(sandbox.command || "pippin", ["run", params.command], {
+              cwd,
+              env: {
+                ...process.env,
+                ...shellEnv.env,
+                ...(sandbox.host ? { PIPPIN_HOST: sandbox.host } : {}),
+                ...(sandbox.port ? { PIPPIN_PORT: String(sandbox.port) } : {}),
+              },
+              stdio: ["ignore", "pipe", "pipe"],
+              detached: process.platform !== "win32",
+              windowsHide: process.platform === "win32",
+            })
+          : spawn(params.command, {
+              shell,
+              cwd,
+              env: {
+                ...process.env,
+                ...shellEnv.env,
+              },
+              stdio: ["ignore", "pipe", "pipe"],
+              detached: process.platform !== "win32",
+              windowsHide: process.platform === "win32",
+            })
 
       let output = ""
 

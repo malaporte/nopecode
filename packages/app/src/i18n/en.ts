@@ -891,6 +891,8 @@ export const dict = {
   "settings.permissions.tool.list.description": "List files within a directory",
   "settings.permissions.tool.bash.title": "Bash",
   "settings.permissions.tool.bash.description": "Run shell commands",
+  "settings.permissions.tool.unsandboxed_bash.title": "Unsandboxed Bash",
+  "settings.permissions.tool.unsandboxed_bash.description": "Run shell commands outside the sandbox",
   "settings.permissions.tool.task.title": "Task",
   "settings.permissions.tool.task.description": "Launch sub-agents",
   "settings.permissions.tool.skill.title": "Skill",

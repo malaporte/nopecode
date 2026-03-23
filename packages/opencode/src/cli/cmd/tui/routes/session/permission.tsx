@@ -297,6 +297,21 @@ export function PermissionPrompt(props: { request: PermissionRequest }) {
               }
             }
 
+            if (permission === "unsandboxed_bash") {
+              const command = props.request.patterns?.[0] ?? ""
+              return {
+                icon: "⚠",
+                title: "Run outside sandbox",
+                body: (
+                  <Show when={command}>
+                    <box paddingLeft={1}>
+                      <text fg={theme.text}>{"$ " + command}</text>
+                    </box>
+                  </Show>
+                ),
+              }
+            }
+
             if (permission === "task") {
               const type = typeof data.subagent_type === "string" ? data.subagent_type : "Unknown"
               const desc = typeof data.description === "string" ? data.description : ""
