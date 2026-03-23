@@ -27,6 +27,7 @@ import { Log } from "@/util/log"
 import { LspTool } from "./lsp"
 import { Truncate } from "./truncate"
 
+import path from "path"
 import { ApplyPatchTool } from "./apply_patch"
 import { Glob } from "../util/glob"
 import { Bus } from "../bus"
@@ -45,9 +46,13 @@ export namespace ToolRegistry {
     )
     if (matches.length) {
       log.warn("ignoring custom tools", { tools: matches })
+      const shown = matches.slice(0, 3)
+      const rest = matches.length - shown.length
+      const paths = shown.map((m) => "  " + path.relative(Instance.directory, m)).join("\n")
+      const suffix = rest > 0 ? `\n(and ${rest} more)` : ""
       await Bus.publish(TuiEvent.ToastShow, {
         title: "Custom tools ignored",
-        message: "Custom tools are disabled in this build and configured tools will be ignored.",
+        message: `Custom tools are disabled in this build:\n${paths}${suffix}`,
         variant: "warning",
       })
     }
