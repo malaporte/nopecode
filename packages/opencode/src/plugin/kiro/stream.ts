@@ -1,3 +1,7 @@
+import { Log } from "../../util/log"
+
+const log = Log.create({ service: "plugin.kiro.stream" })
+
 const THINKING_START = "<thinking>"
 const THINKING_END = "</thinking>"
 
@@ -47,6 +51,8 @@ function parseBuffer(raw: string): { events: any[]; remaining: string } {
       remaining.indexOf('{"input":', pos),
       remaining.indexOf('{"stop":', pos),
       remaining.indexOf('{"contextUsagePercentage":', pos),
+      remaining.indexOf('{"metadataEvent":', pos),
+      remaining.indexOf('{"unit":', pos),
     ].filter((p) => p >= 0)
     if (candidates.length === 0) break
 
@@ -108,6 +114,10 @@ function parseBuffer(raw: string): { events: any[]; remaining: string } {
         events.push({ type: "toolUseStop", data: { stop: parsed.stop } })
       } else if (parsed.contextUsagePercentage !== undefined) {
         events.push({ type: "contextUsage", data: { contextUsagePercentage: parsed.contextUsagePercentage } })
+      } else if (parsed.metadataEvent) {
+        events.push({ type: "metadata", data: parsed.metadataEvent })
+      } else if (parsed.unit && parsed.usage !== undefined) {
+        events.push({ type: "metering", data: { unit: parsed.unit, usage: parsed.usage } })
       }
     }
 
@@ -210,6 +220,10 @@ function toOpenAI(event: StreamEvent, id: string, model: string): any {
       prompt_tokens: event.usage?.input_tokens || 0,
       completion_tokens: event.usage?.output_tokens || 0,
       total_tokens: (event.usage?.input_tokens || 0) + (event.usage?.output_tokens || 0),
+      prompt_tokens_details: {
+        cached_tokens: event.usage?.cache_read_input_tokens || 0,
+      },
+      cache_creation_input_tokens: event.usage?.cache_creation_input_tokens || 0,
     }
   }
 
@@ -256,6 +270,9 @@ export async function* transformStream(response: Response, model: string, conver
   let output = 0
   let input = 0
   let contextPct: number | null = null
+  let cacheRead = 0
+  let cacheWrite = 0
+  let credits = 0
   const calls: ToolState[] = []
   let current: ToolState | null = null
 
@@ -271,6 +288,13 @@ export async function* transformStream(response: Response, model: string, conver
       for (const event of parsed.events) {
         if (event.type === "contextUsage" && event.data.contextUsagePercentage) {
           contextPct = event.data.contextUsagePercentage
+        } else if (event.type === "metering" && event.data) {
+          credits += event.data.usage || 0
+        } else if (event.type === "metadata" && event.data) {
+          if (event.data.cache_read_input_tokens) cacheRead += event.data.cache_read_input_tokens
+          if (event.data.cache_write_input_tokens) cacheWrite += event.data.cache_write_input_tokens
+          if (event.data.input_tokens) input = event.data.input_tokens
+          if (event.data.output_tokens) output = event.data.output_tokens
         } else if (event.type === "content" && event.data) {
           total += event.data
           state.buffer += event.data
@@ -407,11 +431,14 @@ export async function* transformStream(response: Response, model: string, conver
       }
     }
 
-    output = Math.ceil(total.length / 4)
-    if (contextPct !== null && contextPct > 0) {
+    // fallback token estimation from contextUsagePercentage when metadata is absent
+    if (!output) output = Math.ceil(total.length / 4)
+    if (!input && contextPct !== null && contextPct > 0) {
       const tokens = Math.round((200000 * contextPct) / 100)
       input = Math.max(0, tokens - output)
     }
+
+    log.info("stream usage", { input, output, cacheRead, cacheWrite, credits, contextPct })
 
     yield toOpenAI(
       {
@@ -420,8 +447,8 @@ export async function* transformStream(response: Response, model: string, conver
         usage: {
           input_tokens: input,
           output_tokens: output,
-          cache_creation_input_tokens: 0,
-          cache_read_input_tokens: 0,
+          cache_creation_input_tokens: cacheWrite,
+          cache_read_input_tokens: cacheRead,
         },
       },
       conversation,

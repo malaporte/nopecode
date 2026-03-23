@@ -68,28 +68,9 @@ function decode(refresh: string) {
   return { token: parts[0]!, method: "desktop" as const }
 }
 
-function canThink(id: string, name: string) {
+export function canThink(id: string, name: string) {
   const text = `${id} ${name}`.toLowerCase()
   return text.includes("sonnet") || text.includes("opus")
-}
-
-function withThinking(models: typeof KIRO_MODELS) {
-  return Object.fromEntries(
-    Object.entries(models).flatMap(([id, model]) => {
-      if (!canThink(id, model.name)) return [[id, model]]
-      return [
-        [id, model],
-        [
-          `${id}-thinking`,
-          {
-            ...model,
-            name: model.name.includes("(Thinking)") ? model.name : `${model.name} (Thinking)`,
-            thinking: true,
-          },
-        ],
-      ]
-    }),
-  )
 }
 
 function encode(token: string, clientId?: string, clientSecret?: string, method?: string): string {
@@ -158,10 +139,6 @@ async function refresh(
     access: acc,
     expires: Date.now() + (d.expires_in || d.expiresIn || 3600) * 1000,
   }
-}
-
-function isThinking(model: string): boolean {
-  return model.includes("-thinking")
 }
 
 async function getAuth(dir: string) {
@@ -234,7 +211,7 @@ export async function loadModels(dir: string) {
     next = data.nextToken
   } while (next)
 
-  return Object.keys(out).length ? withThinking(out) : KIRO_MODELS
+  return Object.keys(out).length ? out : KIRO_MODELS
 }
 
 export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
@@ -340,6 +317,9 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
     }
   }
 
+  // map opencode session ID → persistent Kiro conversationId for reuse
+  const conversations = new Map<string, string>()
+
   return {
     auth: {
       provider: PROVIDER_ID,
@@ -393,7 +373,16 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
             const model = parsed.model as string
             if (!model) return fetch(request, init)
 
-            const think = isThinking(model)
+            const hdrs = init?.headers
+            const hdr = (name: string) =>
+              (hdrs instanceof Headers
+                ? hdrs.get(name)
+                : Array.isArray(hdrs)
+                  ? hdrs.find(([k]) => k.toLowerCase() === name)?.[1]
+                  : hdrs?.[name]) || ""
+            const suffix = hdr("x-kiro-suffix")
+            const session = hdr("x-kiro-session")
+            const think = suffix.includes("thinking")
             const budget = think ? 32000 : 0
             const kiroAuth: KiroAuth = {
               access: auth.access,
@@ -401,24 +390,37 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
               profileArn: cfg.idc_profile_arn,
             }
 
-            let prepared = transform(
+            const existing = session ? conversations.get(session) : undefined
+            const prepared = transform(
               request instanceof URL ? request.href : request.toString(),
               parsed,
               model,
               kiroAuth,
               think,
               budget,
+              1.0,
+              existing,
             )
 
-            log.info("kiro request", { model, resolved: prepared.model, conversation: prepared.conversation })
+            log.info("kiro request", {
+              model,
+              resolved: prepared.model,
+              conversation: prepared.conversation,
+              reused: !!existing,
+            })
 
-            let res = await fetch(prepared.url, prepared.init)
+            const res = await fetch(prepared.url, prepared.init)
 
             if (!res.ok) {
               const txt = await res.text().catch(() => "")
               log.error("kiro api error", { status: res.status, body: txt.slice(0, 500) })
+              // invalidate on error so next request starts fresh
+              if (session) conversations.delete(session)
               return new Response(txt, { status: res.status, headers: res.headers })
             }
+
+            // persist conversationId for reuse on next turn
+            if (session) conversations.set(session, prepared.conversation)
 
             // transform the response stream into OpenAI SSE format
             const gen = transformStream(res, model, prepared.conversation)
@@ -509,79 +511,9 @@ export const KIRO_MODELS: Record<
   }
 > = {
   "claude-sonnet-4-6": { name: "Claude Sonnet 4.6", thinking: false, context: 200000, input: 200000, output: 128000 },
-  "claude-sonnet-4-6-thinking": {
-    name: "Claude Sonnet 4.6 (Thinking)",
-    thinking: true,
-    context: 200000,
-    input: 200000,
-    output: 128000,
-  },
-  "claude-sonnet-4-6-1m": {
-    name: "Claude Sonnet 4.6 1M",
-    thinking: false,
-    context: 1000000,
-    input: 1000000,
-    output: 128000,
-  },
-  "claude-sonnet-4-6-1m-thinking": {
-    name: "Claude Sonnet 4.6 1M (Thinking)",
-    thinking: true,
-    context: 1000000,
-    input: 1000000,
-    output: 128000,
-  },
   "claude-opus-4-6": { name: "Claude Opus 4.6", thinking: false, context: 200000, input: 200000, output: 128000 },
-  "claude-opus-4-6-thinking": {
-    name: "Claude Opus 4.6 (Thinking)",
-    thinking: true,
-    context: 200000,
-    input: 200000,
-    output: 128000,
-  },
-  "claude-opus-4-6-1m": {
-    name: "Claude Opus 4.6 1M",
-    thinking: false,
-    context: 1000000,
-    input: 1000000,
-    output: 128000,
-  },
-  "claude-opus-4-6-1m-thinking": {
-    name: "Claude Opus 4.6 1M (Thinking)",
-    thinking: true,
-    context: 1000000,
-    input: 1000000,
-    output: 128000,
-  },
   "claude-sonnet-4-5": { name: "Claude Sonnet 4.5", thinking: false, context: 200000, input: 200000, output: 128000 },
-  "claude-sonnet-4-5-thinking": {
-    name: "Claude Sonnet 4.5 (Thinking)",
-    thinking: true,
-    context: 200000,
-    input: 200000,
-    output: 128000,
-  },
-  "claude-sonnet-4-5-1m": {
-    name: "Claude Sonnet 4.5 1M",
-    thinking: false,
-    context: 1000000,
-    input: 1000000,
-    output: 128000,
-  },
-  "claude-sonnet-4-5-1m-thinking": {
-    name: "Claude Sonnet 4.5 1M (Thinking)",
-    thinking: true,
-    context: 1000000,
-    input: 1000000,
-    output: 128000,
-  },
   "claude-opus-4-5": { name: "Claude Opus 4.5", thinking: false, context: 200000, input: 200000, output: 128000 },
-  "claude-opus-4-5-thinking": {
-    name: "Claude Opus 4.5 (Thinking)",
-    thinking: true,
-    context: 200000,
-    input: 200000,
-    output: 128000,
-  },
   "claude-haiku-4-5": { name: "Claude Haiku 4.5", thinking: false, context: 200000, input: 200000, output: 128000 },
   "qwen3-coder-480b": { name: "Qwen3 Coder 480B", thinking: false, context: 262144, input: 262144, output: 65536 },
 }
