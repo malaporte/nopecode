@@ -25,11 +25,16 @@ const MODEL_MAP: Record<string, string> = {
   "qwen3-coder-480b": "QWEN3_CODER_480B_A35B_1_0",
 }
 
+interface CachePoint {
+  type: "default"
+}
+
 interface CWMessage {
   userInputMessage?: {
     content: string
     modelId: string
     origin: string
+    cachePoint?: CachePoint
     images?: Array<{ format: string; source: { bytes: string } }>
     userInputMessageContext?: {
       toolResults?: Array<{ toolUseId: string; content: Array<{ text?: string }>; status?: string }>
@@ -40,6 +45,7 @@ interface CWMessage {
   }
   assistantResponseMessage?: {
     content: string
+    cachePoint?: CachePoint
     toolUses?: Array<{ input: any; name: string; toolUseId: string }>
   }
 }
@@ -340,10 +346,11 @@ export function transform(
   think: boolean,
   budget: number,
   reduction = 1.0,
+  reuse?: string,
 ): Prepared {
   const req = typeof body === "string" ? JSON.parse(body) : body
   const { messages, tools: reqTools, system } = req
-  const conversation = crypto.randomUUID()
+  const conversation = reuse || crypto.randomUUID()
   if (!messages || messages.length === 0) throw new Error("No messages")
   const resolved = resolve(model)
   const systemMsgs = messages.filter((m: any) => m.role === "system")
@@ -363,6 +370,7 @@ export function transform(
   const cwTools = reqTools ? tools(reqTools) : []
   const longCtx = model.includes("-1m")
   const toolLimit = Math.floor((longCtx ? 1250000 : 250000) * reduction)
+
   let history = buildHistory(msgs, resolved, toolLimit)
   const historyLimit = Math.floor((longCtx ? 4250000 : 850000) * reduction)
   history = truncateHistory(history, historyLimit)
@@ -374,6 +382,21 @@ export function transform(
       first.userInputMessage.content = `${sys}\n\n${first.userInputMessage.content || ""}`
     } else {
       history.unshift({ userInputMessage: { content: sys, modelId: resolved, origin: ORIGIN } })
+    }
+  }
+
+  // annotate cache points: first user message (system prompt) and last assistant message
+  // limited to 2 cache checkpoints per request
+  if (history.length > 0) {
+    const first = history.find((h) => !!h.userInputMessage)
+    if (first?.userInputMessage) first.userInputMessage.cachePoint = { type: "default" }
+
+    for (let i = history.length - 1; i >= 0; i--) {
+      const h = history[i]
+      if (h?.assistantResponseMessage && h !== first) {
+        h.assistantResponseMessage.cachePoint = { type: "default" }
+        break
+      }
     }
   }
 

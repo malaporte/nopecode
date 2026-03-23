@@ -223,6 +223,7 @@ export namespace LLM {
               }
             : undefined),
         ...(kiroSuffix ? { "x-kiro-suffix": kiroSuffix } : undefined),
+        ...(input.model.providerID === "kiro" ? { "x-kiro-session": input.sessionID } : undefined),
         ...input.model.headers,
         ...headers,
       },

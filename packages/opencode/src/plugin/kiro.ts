@@ -317,6 +317,9 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
     }
   }
 
+  // map opencode session ID → persistent Kiro conversationId for reuse
+  const conversations = new Map<string, string>()
+
   return {
     auth: {
       provider: PROVIDER_ID,
@@ -371,12 +374,14 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
             if (!model) return fetch(request, init)
 
             const hdrs = init?.headers
-            const suffix =
+            const hdr = (name: string) =>
               (hdrs instanceof Headers
-                ? hdrs.get("x-kiro-suffix")
+                ? hdrs.get(name)
                 : Array.isArray(hdrs)
-                  ? hdrs.find(([k]) => k.toLowerCase() === "x-kiro-suffix")?.[1]
-                  : hdrs?.["x-kiro-suffix"]) || ""
+                  ? hdrs.find(([k]) => k.toLowerCase() === name)?.[1]
+                  : hdrs?.[name]) || ""
+            const suffix = hdr("x-kiro-suffix")
+            const session = hdr("x-kiro-session")
             const think = suffix.includes("thinking")
             const budget = think ? 32000 : 0
             const kiroAuth: KiroAuth = {
@@ -385,28 +390,37 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
               profileArn: cfg.idc_profile_arn,
             }
 
-            let prepared = transform(
+            const existing = session ? conversations.get(session) : undefined
+            const prepared = transform(
               request instanceof URL ? request.href : request.toString(),
               parsed,
               model,
               kiroAuth,
               think,
               budget,
+              1.0,
+              existing,
             )
 
             log.info("kiro request", {
               model,
               resolved: prepared.model,
               conversation: prepared.conversation,
+              reused: !!existing,
             })
 
-            let res = await fetch(prepared.url, prepared.init)
+            const res = await fetch(prepared.url, prepared.init)
 
             if (!res.ok) {
               const txt = await res.text().catch(() => "")
               log.error("kiro api error", { status: res.status, body: txt.slice(0, 500) })
+              // invalidate on error so next request starts fresh
+              if (session) conversations.delete(session)
               return new Response(txt, { status: res.status, headers: res.headers })
             }
+
+            // persist conversationId for reuse on next turn
+            if (session) conversations.set(session, prepared.conversation)
 
             // transform the response stream into OpenAI SSE format
             const gen = transformStream(res, model, prepared.conversation)

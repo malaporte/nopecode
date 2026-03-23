@@ -272,6 +272,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       providerMetadata[this.providerOptionsName].rejectedPredictionTokens =
         completionTokenDetails?.rejected_prediction_tokens
     }
+    if (responseBody.usage?.cache_creation_input_tokens != null) {
+      if (!providerMetadata["anthropic"]) providerMetadata["anthropic"] = {}
+      providerMetadata["anthropic"].cacheCreationInputTokens = responseBody.usage.cache_creation_input_tokens
+    }
 
     return {
       content,
@@ -345,6 +349,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
         cachedTokens: number | undefined
       }
       totalTokens: number | undefined
+      cacheCreationInputTokens: number | undefined
     } = {
       completionTokens: undefined,
       completionTokensDetails: {
@@ -357,6 +362,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
         cachedTokens: undefined,
       },
       totalTokens: undefined,
+      cacheCreationInputTokens: undefined,
     }
     let isFirstChunk = true
     const providerOptionsName = this.providerOptionsName
@@ -429,6 +435,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
               }
               if (prompt_tokens_details?.cached_tokens != null) {
                 usage.promptTokensDetails.cachedTokens = prompt_tokens_details?.cached_tokens
+              }
+              if (value.usage.cache_creation_input_tokens != null) {
+                usage.cacheCreationInputTokens = value.usage.cache_creation_input_tokens
               }
             }
 
@@ -666,6 +675,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
               providerMetadata[providerOptionsName].rejectedPredictionTokens =
                 usage.completionTokensDetails.rejectedPredictionTokens
             }
+            if (usage.cacheCreationInputTokens != null) {
+              if (!providerMetadata["anthropic"]) providerMetadata["anthropic"] = {}
+              providerMetadata["anthropic"].cacheCreationInputTokens = usage.cacheCreationInputTokens
+            }
 
             controller.enqueue({
               type: "finish",
@@ -705,6 +718,7 @@ const openaiCompatibleTokenUsageSchema = z
         rejected_prediction_tokens: z.number().nullish(),
       })
       .nullish(),
+    cache_creation_input_tokens: z.number().nullish(),
   })
   .nullish()
 
