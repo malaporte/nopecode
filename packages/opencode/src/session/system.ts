@@ -62,6 +62,7 @@ export namespace SystemPrompt {
         [
           `<sandbox>`,
           `A sandboxed execution environment is active. Shell commands are executed inside a restricted container. Some system commands, network access, or filesystem paths outside the project may be unavailable or behave differently. If a command fails unexpectedly, consider whether sandbox restrictions may be the cause.`,
+          `To run a command on the host instead of inside the sandbox, set the \`unsandboxed\` parameter to true on the bash tool. This will prompt the user for approval before executing.`,
           `</sandbox>`,
         ].join("\n"),
       )

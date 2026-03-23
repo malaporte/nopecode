@@ -57,6 +57,7 @@ export namespace Agent {
     const defaults = PermissionNext.fromConfig({
       "*": "allow",
       doom_loop: "ask",
+      unsandboxed_bash: "ask",
       external_directory: {
         "*": "ask",
         ...Object.fromEntries(whitelistedDirs.map((dir) => [dir, "allow"])),
