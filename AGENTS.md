@@ -3,6 +3,7 @@
 - The default branch in this repo is `dev`.
 - Local `main` ref may not exist; use `dev` or `origin/dev` for diffs.
 - Prefer automation: execute requested actions without confirmation unless blocked by missing info or safety/irreversibility.
+- Create pull requests in the fork (`mine` remote / `malaporte/nopecode`), not in the upstream repo (`origin` / `anomalyco/opencode`).
 
 ## Style Guide
 
