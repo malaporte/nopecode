@@ -108,6 +108,9 @@ export namespace LLM {
       mergeDeep(input.agent.options),
       mergeDeep(variant),
     )
+    // extract kiro variant suffix before it reaches providerOptions
+    const kiroSuffix = options._kiroSuffix
+    delete options._kiroSuffix
     if (isCodex) {
       options.instructions = SystemPrompt.instructions()
     }
@@ -219,6 +222,7 @@ export namespace LLM {
                 "User-Agent": `opencode/${Installation.VERSION}`,
               }
             : undefined),
+        ...(kiroSuffix ? { "x-kiro-suffix": kiroSuffix } : undefined),
         ...input.model.headers,
         ...headers,
       },

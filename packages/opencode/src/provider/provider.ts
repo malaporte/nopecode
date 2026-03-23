@@ -46,7 +46,7 @@ import { GoogleAuth } from "google-auth-library"
 import { ProviderTransform } from "./transform"
 import { Installation } from "../installation"
 import { ModelID, ProviderID } from "./schema"
-import { KIRO_MODELS, loadModels as loadKiroModels } from "../plugin/kiro"
+import { KIRO_MODELS, loadModels as loadKiroModels, canThink as kiroCanThink } from "../plugin/kiro"
 
 const DEFAULT_CHUNK_TIMEOUT = 300_000
 
@@ -834,6 +834,9 @@ export namespace Provider {
     const kiroModels = await loadKiroModels(Instance.directory).catch(() => KIRO_MODELS)
 
     // inject kiro provider with models (not in models.dev)
+    const kiroVariants: Record<string, Record<string, any>> = {
+      thinking: { _kiroSuffix: "-thinking" },
+    }
     database["kiro"] = {
       id: ProviderID.kiro,
       source: "custom",
@@ -841,32 +844,35 @@ export namespace Provider {
       env: [],
       options: {},
       models: Object.fromEntries(
-        Object.entries(kiroModels).map(([id, m]) => [
-          id,
-          {
-            id: ModelID.make(id),
-            providerID: ProviderID.kiro,
-            api: { id, url: "", npm: "@ai-sdk/openai-compatible" },
-            name: m.name,
-            capabilities: {
-              temperature: false,
-              reasoning: m.thinking,
-              attachment: true,
-              toolcall: true,
-              input: { text: true, audio: false, image: true, video: false, pdf: false },
-              output: { text: true, audio: false, image: false, video: false, pdf: false },
-              interleaved: false,
-            },
-            cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
-            limit: { context: m.context, input: m.input, output: m.output },
-            status: "active" as const,
-            options: {},
-            headers: {},
-            release_date: "2025-01-01",
-            variants: {} as Record<string, Record<string, any>>,
-            family: id.includes("claude") ? "claude" : id.toLowerCase().includes("qwen") ? "qwen" : "kiro",
-          } satisfies Model,
-        ]),
+        Object.entries(kiroModels).map(([id, m]) => {
+          const thinks = kiroCanThink(id, m.name)
+          return [
+            id,
+            {
+              id: ModelID.make(id),
+              providerID: ProviderID.kiro,
+              api: { id, url: "", npm: "@ai-sdk/openai-compatible" },
+              name: m.name,
+              capabilities: {
+                temperature: false,
+                reasoning: thinks,
+                attachment: true,
+                toolcall: true,
+                input: { text: true, audio: false, image: true, video: false, pdf: false },
+                output: { text: true, audio: false, image: false, video: false, pdf: false },
+                interleaved: false,
+              },
+              cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+              limit: { context: m.context, input: m.input, output: m.output },
+              status: "active" as const,
+              options: {},
+              headers: {},
+              release_date: "2025-01-01",
+              variants: thinks ? { ...kiroVariants } : ({} as Record<string, Record<string, any>>),
+              family: id.includes("claude") ? "claude" : id.toLowerCase().includes("qwen") ? "qwen" : "kiro",
+            } satisfies Model,
+          ]
+        }),
       ),
     }
 
@@ -1104,7 +1110,8 @@ export namespace Provider {
         )
           delete provider.models[modelID]
 
-        model.variants = mapValues(ProviderTransform.variants(model), (v) => v)
+        // kiro variants are set during injection, skip ProviderTransform
+        if (providerID !== ProviderID.kiro) model.variants = mapValues(ProviderTransform.variants(model), (v) => v)
 
         // Filter out disabled variants from config
         const configVariants = configProvider?.models?.[modelID]?.variants

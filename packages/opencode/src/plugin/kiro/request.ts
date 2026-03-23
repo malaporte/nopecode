@@ -69,7 +69,11 @@ export interface Auth {
 }
 
 function resolve(model: string): string {
-  return MODEL_MAP[model] ?? model
+  if (MODEL_MAP[model]) return MODEL_MAP[model]
+  // try dash-separated form (e.g. claude-sonnet-4.6 → claude-sonnet-4-6)
+  const dashed = model.replace(/(\d+)\.(\d+)/g, "$1-$2")
+  if (MODEL_MAP[dashed]) return MODEL_MAP[dashed]
+  return model
 }
 
 function regionFromArn(arn: string | undefined): string | undefined {
