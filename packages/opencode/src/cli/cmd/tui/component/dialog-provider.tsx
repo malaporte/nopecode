@@ -2,7 +2,7 @@ import { createMemo, createSignal, onMount, Show } from "solid-js"
 import { useSync } from "@tui/context/sync"
 import { map, pipe, sortBy } from "remeda"
 import { DialogSelect } from "@tui/ui/dialog-select"
-import { useDialog, type DialogContext } from "@tui/ui/dialog"
+import { useDialog } from "@tui/ui/dialog"
 import { useSDK } from "../context/sdk"
 import { DialogPrompt } from "../ui/dialog-prompt"
 import { Link } from "../ui/link"
@@ -24,52 +24,11 @@ const PROVIDER_PRIORITY: Record<string, number> = {
   google: 6,
 }
 
-async function collectInputs(
-  method: ProviderAuthMethod,
-  dialog: DialogContext,
-): Promise<Record<string, string> | null> {
-  const prompts = method.prompts
-  if (!prompts?.length) return {}
-  const inputs: Record<string, string> = {}
-  for (const prompt of prompts) {
-    if (prompt.condition && inputs[prompt.condition.key] !== prompt.condition.value) continue
-    if (prompt.type === "select") {
-      const value = await new Promise<string | null>((resolve) => {
-        dialog.replace(
-          () => (
-            <DialogSelect<string>
-              title={prompt.message}
-              options={prompt.options.map((o) => ({
-                title: o.label,
-                value: o.value,
-                description: o.hint,
-              }))}
-              onSelect={(option) => resolve(option.value)}
-            />
-          ),
-          () => resolve(null),
-        )
-      })
-      if (value == null) return null
-      inputs[prompt.key] = value
-    }
-    if (prompt.type === "text") {
-      // small delay to let previous dialog fully unmount and keyboard handlers clean up
-      await new Promise((r) => setTimeout(r, 10))
-      const value = await DialogPrompt.show(dialog, prompt.message, {
-        placeholder: prompt.placeholder,
-      })
-      if (value == null) return null
-      inputs[prompt.key] = value
-    }
-  }
-  return inputs
-}
-
 export function createDialogProviderOptions() {
   const sync = useSync()
   const dialog = useDialog()
   const sdk = useSDK()
+  const toast = useToast()
   const options = createMemo(() => {
     return pipe(
       sync.data.provider_next.all,
@@ -113,13 +72,29 @@ export function createDialogProviderOptions() {
           if (index == null) return
           const method = methods[index]
           if (method.type === "oauth") {
-            const inputs = await collectInputs(method, dialog)
-            if (inputs == null) return
+            let inputs: Record<string, string> | undefined
+            if (method.prompts?.length) {
+              const value = await PromptsMethod({
+                dialog,
+                prompts: method.prompts,
+              })
+              if (!value) return
+              inputs = value
+            }
+
             const result = await sdk.client.provider.oauth.authorize({
               providerID: provider.id,
               method: index,
-              inputs: Object.keys(inputs).length > 0 ? inputs : undefined,
+              inputs,
             })
+            if (result.error) {
+              toast.show({
+                variant: "error",
+                message: JSON.stringify(result.error),
+              })
+              dialog.clear()
+              return
+            }
             if (result.data?.method === "code") {
               dialog.replace(() => (
                 <CodeMethod providerID={provider.id} title={method.label} index={index} authorization={result.data!} />
@@ -303,4 +278,54 @@ function ApiMethod(props: ApiMethodProps) {
       }}
     />
   )
+}
+
+interface PromptsMethodProps {
+  dialog: ReturnType<typeof useDialog>
+  prompts: NonNullable<ProviderAuthMethod["prompts"]>[number][]
+}
+async function PromptsMethod(props: PromptsMethodProps) {
+  const inputs: Record<string, string> = {}
+  for (const prompt of props.prompts) {
+    if (prompt.when) {
+      const value = inputs[prompt.when.key]
+      if (value === undefined) continue
+      const matches = prompt.when.op === "eq" ? value === prompt.when.value : value !== prompt.when.value
+      if (!matches) continue
+    }
+
+    if (prompt.type === "select") {
+      const value = await new Promise<string | null>((resolve) => {
+        props.dialog.replace(
+          () => (
+            <DialogSelect
+              title={prompt.message}
+              options={prompt.options.map((x) => ({
+                title: x.label,
+                value: x.value,
+                description: x.hint,
+              }))}
+              onSelect={(option) => resolve(option.value)}
+            />
+          ),
+          () => resolve(null),
+        )
+      })
+      if (value === null) return null
+      inputs[prompt.key] = value
+      continue
+    }
+
+    const value = await new Promise<string | null>((resolve) => {
+      props.dialog.replace(
+        () => (
+          <DialogPrompt title={prompt.message} placeholder={prompt.placeholder} onConfirm={(value) => resolve(value)} />
+        ),
+        () => resolve(null),
+      )
+    })
+    if (value === null) return null
+    inputs[prompt.key] = value
+  }
+  return inputs
 }
