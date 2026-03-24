@@ -17,6 +17,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const { theme } = useTheme()
   const session = createMemo(() => sync.session.get(props.sessionID)!)
   const diff = createMemo(() => sync.data.session_diff[props.sessionID] ?? [])
+  const sandboxErrors = createMemo(() => sync.data.sandbox_errors[props.sessionID] ?? [])
   const todo = createMemo(() => sync.data.todo[props.sessionID] ?? [])
   const messages = createMemo(() => sync.data.message[props.sessionID] ?? [])
 
@@ -25,6 +26,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     diff: true,
     todo: true,
     lsp: true,
+    sandbox_errors: true,
   })
 
   // Sort MCP servers alphabetically for consistent display order
@@ -262,6 +264,47 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                         </box>
                       )
                     }}
+                  </For>
+                </Show>
+              </box>
+            </Show>
+            <Show when={sandboxErrors().length > 0}>
+              <box>
+                <box flexDirection="row" gap={1} justifyContent="space-between">
+                  <box
+                    flexDirection="row"
+                    gap={1}
+                    onMouseDown={() => setExpanded("sandbox_errors", !expanded.sandbox_errors)}
+                  >
+                    <text fg={theme.text}>{expanded.sandbox_errors ? "▼" : "▶"}</text>
+                    <text fg={theme.error}>
+                      <b>Sandbox Errors</b>
+                    </text>
+                    <text fg={theme.textMuted}>({sandboxErrors().length})</text>
+                  </box>
+                  <text fg={theme.textMuted} onMouseDown={() => sync.clearSandboxErrors(props.sessionID)}>
+                    ✕
+                  </text>
+                </box>
+                <Show when={expanded.sandbox_errors}>
+                  <For each={sandboxErrors()}>
+                    {(item) => (
+                      <box gap={1} paddingTop={1}>
+                        <box flexDirection="row" gap={1} justifyContent="space-between">
+                          <text fg={theme.text} wrapMode="none" flexShrink={1}>
+                            {item.command}
+                          </text>
+                          <text fg={theme.error} flexShrink={0}>
+                            exit {item.exit}
+                          </text>
+                        </box>
+                        <scrollbox height={5} flexShrink={0}>
+                          <text fg={theme.textMuted} wrapMode="word">
+                            {item.output}
+                          </text>
+                        </scrollbox>
+                      </box>
+                    )}
                   </For>
                 </Show>
               </box>

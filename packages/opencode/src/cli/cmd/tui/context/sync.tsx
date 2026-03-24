@@ -55,6 +55,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       session_diff: {
         [sessionID: string]: Snapshot.FileDiff[]
       }
+      sandbox_errors: {
+        [sessionID: string]: Array<{ command: string; exit: number; output: string }>
+      }
       todo: {
         [sessionID: string]: Todo[]
       }
@@ -93,6 +96,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       session: [],
       session_status: {},
       session_diff: {},
+      sandbox_errors: {},
       todo: {},
       message: {},
       part: {},
@@ -212,6 +216,12 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
               }),
             )
           }
+          setStore(
+            "sandbox_errors",
+            produce((draft) => {
+              delete draft[event.properties.info.id]
+            }),
+          )
           break
         }
         case "session.updated": {
@@ -291,20 +301,39 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           const parts = store.part[event.properties.part.messageID]
           if (!parts) {
             setStore("part", event.properties.part.messageID, [event.properties.part])
-            break
+          } else {
+            const result = Binary.search(parts, event.properties.part.id, (p) => p.id)
+            if (result.found) {
+              setStore("part", event.properties.part.messageID, result.index, reconcile(event.properties.part))
+            } else {
+              setStore(
+                "part",
+                event.properties.part.messageID,
+                produce((draft) => {
+                  draft.splice(result.index, 0, event.properties.part)
+                }),
+              )
+            }
           }
-          const result = Binary.search(parts, event.properties.part.id, (p) => p.id)
-          if (result.found) {
-            setStore("part", event.properties.part.messageID, result.index, reconcile(event.properties.part))
-            break
+          const p = event.properties.part
+          if (
+            p.type === "tool" &&
+            p.tool === "bash" &&
+            p.state.status === "completed" &&
+            typeof p.state.metadata?.exit === "number" &&
+            p.state.metadata.exit !== 0 &&
+            !p.state.input?.unsandboxed
+          ) {
+            const state = p.state
+            setStore("sandbox_errors", p.sessionID, (prev = []) => [
+              ...prev.slice(-19),
+              {
+                command: state.input.command as string,
+                exit: state.metadata.exit as number,
+                output: (state.metadata.output as string) ?? "",
+              },
+            ])
           }
-          setStore(
-            "part",
-            event.properties.part.messageID,
-            produce((draft) => {
-              draft.splice(result.index, 0, event.properties.part)
-            }),
-          )
           break
         }
 
@@ -496,6 +525,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           return store.workspaceList.find((workspace) => workspace.id === workspaceID)
         },
         sync: syncWorkspaces,
+      },
+      clearSandboxErrors(sessionID: string) {
+        setStore("sandbox_errors", sessionID, [])
       },
       bootstrap,
     }
