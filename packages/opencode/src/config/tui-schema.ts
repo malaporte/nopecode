@@ -22,6 +22,11 @@ export const TuiOptions = z.object({
     .enum(["auto", "stacked"])
     .optional()
     .describe("Control diff rendering style: 'auto' adapts to terminal width, 'stacked' always shows single column"),
+  max_prose_width: z
+    .number()
+    .min(40)
+    .optional()
+    .describe("Maximum width in columns for prose content like messages and inline tool output (default: 120)"),
 })
 
 export const TuiInfo = z
