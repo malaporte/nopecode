@@ -95,6 +95,8 @@ class CustomSpeedScroll implements ScrollAcceleration {
 
 const context = createContext<{
   width: number
+  proseWidth: number
+  proseMargin: number
   sessionID: string
   conceal: () => boolean
   showThinking: () => boolean
@@ -168,6 +170,10 @@ export function Session() {
   })
   const showTimestamps = createMemo(() => timestamps() === "show")
   const contentWidth = createMemo(() => dimensions().width - (sidebarVisible() ? 42 : 0) - 4)
+  const proseWidth = createMemo(() =>
+    tuiConfig?.max_prose_width ? Math.min(tuiConfig.max_prose_width, contentWidth()) : contentWidth(),
+  )
+  const proseMargin = createMemo(() => Math.max(0, Math.floor((contentWidth() - proseWidth()) / 2)))
 
   const scrollAcceleration = createMemo(() => {
     const tui = tuiConfig
@@ -1033,6 +1039,12 @@ export function Session() {
         get width() {
           return contentWidth()
         },
+        get proseWidth() {
+          return proseWidth()
+        },
+        get proseMargin() {
+          return proseMargin()
+        },
         sessionID: route.sessionID,
         conceal,
         showThinking,
@@ -1256,6 +1268,8 @@ function UserMessage(props: {
           borderColor={color()}
           customBorderChars={SplitBorder.customBorderChars}
           marginTop={props.index === 0 ? 0 : 1}
+          width={ctx.proseWidth}
+          marginLeft={ctx.proseMargin}
         >
           <box
             onMouseOver={() => {
@@ -1324,6 +1338,7 @@ function UserMessage(props: {
 }
 
 function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; last: boolean }) {
+  const ctx = use()
   const local = useLocal()
   const { theme } = useTheme()
   const sync = useSync()
@@ -1361,7 +1376,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
         }}
       </For>
       <Show when={props.parts.some((x) => x.type === "tool" && x.tool === "task")}>
-        <box paddingTop={1} paddingLeft={3}>
+        <box paddingTop={1} paddingLeft={3} width={ctx.proseWidth} marginLeft={ctx.proseMargin}>
           <text fg={theme.text}>
             {keybind.print("session_child_first")}
             <span style={{ fg: theme.textMuted }}> view subagents</span>
@@ -1378,13 +1393,15 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
           backgroundColor={theme.backgroundPanel}
           customBorderChars={SplitBorder.customBorderChars}
           borderColor={theme.error}
+          width={ctx.proseWidth}
+          marginLeft={ctx.proseMargin}
         >
           <text fg={theme.textMuted}>{props.message.error?.data.message}</text>
         </box>
       </Show>
       <Switch>
         <Match when={props.last || final() || props.message.error?.name === "MessageAbortedError"}>
-          <box paddingLeft={3}>
+          <box paddingLeft={3} width={ctx.proseWidth} marginLeft={ctx.proseMargin}>
             <text marginTop={1}>
               <span
                 style={{
@@ -1436,6 +1453,8 @@ function ReasoningPart(props: { last: boolean; part: ReasoningPart; message: Ass
         border={["left"]}
         customBorderChars={SplitBorder.customBorderChars}
         borderColor={theme.backgroundElement}
+        width={ctx.proseWidth}
+        marginLeft={ctx.proseMargin}
       >
         <code
           filetype="markdown"
@@ -1456,7 +1475,14 @@ function TextPart(props: { last: boolean; part: TextPart; message: AssistantMess
   const { theme, syntax } = useTheme()
   return (
     <Show when={props.part.text.trim()}>
-      <box id={"text-" + props.part.id} paddingLeft={3} marginTop={1} flexShrink={0}>
+      <box
+        id={"text-" + props.part.id}
+        paddingLeft={3}
+        marginTop={1}
+        flexShrink={0}
+        width={ctx.proseWidth}
+        marginLeft={ctx.proseMargin}
+      >
         <Switch>
           <Match when={Flag.OPENCODE_EXPERIMENTAL_MARKDOWN}>
             <markdown
@@ -1676,6 +1702,8 @@ function InlineTool(props: {
     <box
       marginTop={margin()}
       paddingLeft={3}
+      width={ctx.proseWidth}
+      marginLeft={ctx.proseMargin}
       onMouseOver={() => props.onClick && setHover(true)}
       onMouseOut={() => setHover(false)}
       onMouseUp={() => {
