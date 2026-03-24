@@ -1176,7 +1176,7 @@ export function Session() {
                 )}
               </For>
             </scrollbox>
-            <box flexShrink={0}>
+            <box flexShrink={0} marginLeft={proseMargin()} width={proseWidth()}>
               <Show when={permissions().length > 0}>
                 <PermissionPrompt request={permissions()[0]} />
               </Show>
