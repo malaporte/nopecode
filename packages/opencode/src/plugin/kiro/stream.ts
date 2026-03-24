@@ -273,8 +273,9 @@ export async function* transformStream(response: Response, model: string, conver
   let cacheRead = 0
   let cacheWrite = 0
   let credits = 0
-  const calls: ToolState[] = []
   let current: ToolState | null = null
+  let currentIdx = -1
+  let hasCalls = false
 
   try {
     while (true) {
@@ -310,7 +311,15 @@ export async function* transformStream(response: Response, model: string, conver
                 state.inThinking = true
                 continue
               }
-              const safe = Math.max(0, state.buffer.length - THINKING_START.length)
+              // only hold back if the tail could be a partial <thinking> prefix
+              let hold = 0
+              for (let i = Math.min(THINKING_START.length - 1, state.buffer.length); i > 0; i--) {
+                if (state.buffer.endsWith(THINKING_START.slice(0, i))) {
+                  hold = i
+                  break
+                }
+              }
+              const safe = state.buffer.length - hold
               if (safe > 0) {
                 deltas.push(...textDelta(state.buffer.slice(0, safe), state))
                 state.buffer = state.buffer.slice(safe)
@@ -331,7 +340,14 @@ export async function* transformStream(response: Response, model: string, conver
                 if (state.buffer.startsWith("\n\n")) state.buffer = state.buffer.slice(2)
                 continue
               }
-              const safe = Math.max(0, state.buffer.length - THINKING_END.length)
+              let hold = 0
+              for (let i = Math.min(THINKING_END.length - 1, state.buffer.length); i > 0; i--) {
+                if (state.buffer.endsWith(THINKING_END.slice(0, i))) {
+                  hold = i
+                  break
+                }
+              }
+              const safe = state.buffer.length - hold
               if (safe > 0) {
                 deltas.push(...thinkDelta(state.buffer.slice(0, safe), state))
                 state.buffer = state.buffer.slice(safe)
@@ -353,31 +369,70 @@ export async function* transformStream(response: Response, model: string, conver
           if (tc.name) total += tc.name
           if (tc.input) total += tc.input
           if (tc.name && tc.toolUseId) {
-            if (current && current.toolUseId === tc.toolUseId) {
-              current.input += tc.input || ""
-            } else {
-              if (current) calls.push(current)
-              current = { toolUseId: tc.toolUseId, name: tc.name, input: tc.input || "" }
+            if (current && current.toolUseId !== tc.toolUseId) {
+              // close previous tool call
+              yield toOpenAI({ type: "content_block_stop", index: currentIdx }, conversation, model)
+              current = null
             }
-            if (tc.stop && current) {
-              calls.push(current)
+            if (!current) {
+              currentIdx = state.nextIdx++
+              hasCalls = true
+              current = { toolUseId: tc.toolUseId, name: tc.name, input: "" }
+              yield toOpenAI(
+                {
+                  type: "content_block_start",
+                  index: currentIdx,
+                  content_block: { type: "tool_use", id: tc.toolUseId, name: tc.name, input: {} },
+                },
+                conversation,
+                model,
+              )
+            }
+            if (tc.input) {
+              current.input += tc.input
+              yield toOpenAI(
+                {
+                  type: "content_block_delta",
+                  index: currentIdx,
+                  delta: { type: "input_json_delta", partial_json: tc.input },
+                },
+                conversation,
+                model,
+              )
+            }
+            if (tc.stop) {
+              yield toOpenAI({ type: "content_block_stop", index: currentIdx }, conversation, model)
               current = null
             }
           }
         } else if (event.type === "toolUseInput") {
-          if (event.data.input) total += event.data.input
-          if (current) current.input += event.data.input || ""
+          if (event.data.input) {
+            total += event.data.input
+            if (current) {
+              current.input += event.data.input
+              yield toOpenAI(
+                {
+                  type: "content_block_delta",
+                  index: currentIdx,
+                  delta: { type: "input_json_delta", partial_json: event.data.input },
+                },
+                conversation,
+                model,
+              )
+            }
+          }
         } else if (event.type === "toolUseStop") {
           if (current && event.data.stop) {
-            calls.push(current)
+            yield toOpenAI({ type: "content_block_stop", index: currentIdx }, conversation, model)
             current = null
           }
         }
       }
     }
 
+    // close any unclosed tool call
     if (current) {
-      calls.push(current)
+      yield toOpenAI({ type: "content_block_stop", index: currentIdx }, conversation, model)
       current = null
     }
 
@@ -396,17 +451,14 @@ export async function* transformStream(response: Response, model: string, conver
 
     for (const ev of stopBlock(state.textIdx, state)) yield toOpenAI(ev, conversation, model)
 
-    // bracket tool calls fallback
-    const bracket = parseBracketTools(total)
-    if (bracket.length > 0) calls.push(...bracket)
-
-    // emit tool call blocks
-    if (calls.length > 0) {
-      const base = state.nextIdx
-      for (let i = 0; i < calls.length; i++) {
-        const tc = calls[i]
+    // bracket tool calls fallback (only if no streaming tool calls were seen)
+    if (!hasCalls) {
+      const bracket = parseBracketTools(total)
+      for (let i = 0; i < bracket.length; i++) {
+        const tc = bracket[i]
         if (!tc) continue
-        const idx = base + i
+        const idx = state.nextIdx++
+        hasCalls = true
         let json: string
         try {
           json = JSON.stringify(JSON.parse(tc.input))
@@ -443,7 +495,7 @@ export async function* transformStream(response: Response, model: string, conver
     yield toOpenAI(
       {
         type: "message_delta",
-        delta: { stop_reason: calls.length > 0 ? "tool_use" : "end_turn" },
+        delta: { stop_reason: hasCalls ? "tool_use" : "end_turn" },
         usage: {
           input_tokens: input,
           output_tokens: output,
