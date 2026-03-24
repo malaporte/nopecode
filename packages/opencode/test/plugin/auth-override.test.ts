@@ -4,6 +4,7 @@ import fs from "fs/promises"
 import { tmpdir } from "../fixture/fixture"
 import { Instance } from "../../src/project/instance"
 import { ProviderAuth } from "../../src/provider/auth"
+import { ProviderID } from "../../src/provider/schema"
 import { Bus } from "../../src/bus"
 import { TuiEvent } from "../../src/cli/cmd/tui/event"
 
@@ -36,7 +37,7 @@ describe("plugin.auth-override", () => {
       directory: tmp.path,
       fn: async () => {
         const methods = await ProviderAuth.methods()
-        const copilot = methods["github-copilot"]
+        const copilot = methods[ProviderID.make("github-copilot")]
         expect(copilot).toBeDefined()
         expect(copilot.length).toBe(1)
         expect(copilot[0].label).toBe("Login with GitHub Copilot")
@@ -94,7 +95,7 @@ describe("plugin.auth-override", () => {
       directory: tmp.path,
       fn: async () => {
         const methods = await ProviderAuth.methods()
-        expect(methods["blocked-provider"]).toBeUndefined()
+        expect(methods[ProviderID.make("blocked-provider")]).toBeUndefined()
       },
     })
   })
