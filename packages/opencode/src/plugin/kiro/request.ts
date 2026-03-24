@@ -206,7 +206,7 @@ function sanitize(history: CWMessage[]): CWMessage[] {
     if (first?.userInputMessage && !first.userInputMessage.userInputMessageContext?.toolResults) break
     result.shift()
   }
-  while (result.length > 0 && result[result.length - 1]?.assistantResponseMessage) result.pop()
+  while (result.length > 0 && result[result.length - 1]?.assistantResponseMessage?.toolUses) result.pop()
   return result
 }
 
