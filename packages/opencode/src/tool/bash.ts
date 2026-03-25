@@ -78,7 +78,13 @@ export const BashTool = Tool.define("bash", async () => {
       unsandboxed: z
         .boolean()
         .describe(
-          "Set to true to run this command on the host instead of inside the sandbox. Requires user approval. Only use when the command genuinely cannot work inside the sandbox.",
+          "Set to true to run this command on the host instead of inside the sandbox. Requires user approval. Only use when the command genuinely cannot work inside the sandbox. Examples: build tools that require native binaries (e.g. bun typecheck, bun build), package managers that need network access, or commands that must read/write paths outside the project.",
+        )
+        .optional(),
+      unsandboxed_reason: z
+        .string()
+        .describe(
+          "Required when unsandboxed is true. Explain why this command cannot run inside the sandbox (e.g. 'requires native binary unavailable in sandbox', 'needs network access to install packages').",
         )
         .optional(),
     }),

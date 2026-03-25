@@ -298,16 +298,25 @@ export function PermissionPrompt(props: { request: PermissionRequest }) {
             }
 
             if (permission === "unsandboxed_bash") {
-              const command = props.request.patterns?.[0] ?? ""
+              const command = typeof data.command === "string" ? data.command : (props.request.patterns?.[0] ?? "")
+              const reason =
+                typeof data.unsandboxed_reason === "string" && data.unsandboxed_reason ? data.unsandboxed_reason : ""
               return {
                 icon: "⚠",
                 title: "Run outside sandbox",
                 body: (
-                  <Show when={command}>
-                    <box paddingLeft={1}>
-                      <text fg={theme.text}>{"$ " + command}</text>
-                    </box>
-                  </Show>
+                  <>
+                    <Show when={reason}>
+                      <box paddingLeft={1}>
+                        <text fg={theme.textMuted}>{reason}</text>
+                      </box>
+                    </Show>
+                    <Show when={command}>
+                      <box paddingLeft={1}>
+                        <text fg={theme.text}>{"$ " + command}</text>
+                      </box>
+                    </Show>
+                  </>
                 ),
               }
             }
