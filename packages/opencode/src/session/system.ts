@@ -59,7 +59,7 @@ export namespace SystemPrompt {
       result.push(
         [
           `<sandbox>`,
-          `A sandboxed execution environment is active. Shell commands run in a restricted container; some commands or paths outside the project may be unavailable, but internet access is available. If a command fails, consider sandbox restrictions. To run a specific command on the host, set \`unsandboxed\` to true on the bash tool (requires user approval). Only use \`unsandboxed\` for the specific command that requires it — not as a default for subsequent commands.`,
+          `A sandboxed execution environment is active. Common development tools (bun, node, npm, git, gh, etc.) are available in the sandbox. Always try running commands in the sandbox first. Only set \`unsandboxed\` to true if a command fails due to sandbox restrictions — never preemptively. Requires user approval.`,
           `</sandbox>`,
         ].join("\n"),
       )

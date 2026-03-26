@@ -9,7 +9,6 @@ import { useCommandDialog } from "@tui/component/dialog-command"
 import { useKeybind } from "../../context/keybind"
 import { Flag } from "@/flag/flag"
 import { useTerminalDimensions } from "@opentui/solid"
-import { useToast } from "@tui/ui/toast"
 
 const Title = (props: { session: Accessor<Session> }) => {
   const { theme } = useTheme()
@@ -20,11 +19,7 @@ const Title = (props: { session: Accessor<Session> }) => {
   )
 }
 
-const ContextInfo = (props: {
-  context: Accessor<string | undefined>
-  cost: Accessor<string>
-  onCostClick: () => void
-}) => {
+const ContextInfo = (props: { context: Accessor<string | undefined>; cost: Accessor<string> }) => {
   const { theme } = useTheme()
   return (
     <Show when={props.context()}>
@@ -32,7 +27,7 @@ const ContextInfo = (props: {
         <text fg={theme.textMuted} wrapMode="none">
           {props.context()} (
         </text>
-        <text fg={theme.textMuted} wrapMode="none" onMouseDown={props.onCostClick}>
+        <text fg={theme.textMuted} wrapMode="none">
           {props.cost()}
         </text>
         <text fg={theme.textMuted} wrapMode="none">
@@ -98,22 +93,9 @@ export function Header() {
   const { theme } = useTheme()
   const keybind = useKeybind()
   const command = useCommandDialog()
-  const toast = useToast()
   const [hover, setHover] = createSignal<"parent" | "prev" | "next" | null>(null)
   const dimensions = useTerminalDimensions()
   const narrow = createMemo(() => dimensions().width < 80)
-
-  const rawCost = createMemo(() => {
-    const msgs = messages()
-    const isKiro = msgs.findLast((x) => x.role === "assistant")?.providerID === "kiro"
-    const total = pipe(
-      msgs,
-      sumBy((x) => (x.role === "assistant" ? x.cost : 0)),
-    )
-    return isKiro ? "✦" + total : "$" + total
-  })
-
-  const onCostClick = () => toast.show({ message: rawCost(), variant: "info" })
 
   return (
     <box flexShrink={0}>
@@ -145,7 +127,7 @@ export function Header() {
                   </text>
                 )}
 
-                <ContextInfo context={context} cost={cost} onCostClick={onCostClick} />
+                <ContextInfo context={context} cost={cost} />
               </box>
               <box flexDirection="row" gap={2}>
                 <box
@@ -191,7 +173,7 @@ export function Header() {
               ) : (
                 <Title session={session} />
               )}
-              <ContextInfo context={context} cost={cost} onCostClick={onCostClick} />
+              <ContextInfo context={context} cost={cost} />
             </box>
           </Match>
         </Switch>
