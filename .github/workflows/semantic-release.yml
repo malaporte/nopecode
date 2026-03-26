@@ -11,6 +11,7 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
+  actions: write
 
 jobs:
   release:
@@ -28,6 +29,17 @@ jobs:
         run: bun install
 
       - name: Release
+        id: release
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: bun run node_modules/.bin/semantic-release --repository-url https://x-access-token:${GITHUB_TOKEN}@github.com/malaporte/nopecode.git
+        run: |
+          output=$(bun run node_modules/.bin/semantic-release --repository-url https://x-access-token:${GITHUB_TOKEN}@github.com/malaporte/nopecode.git 2>&1)
+          echo "$output"
+          tag=$(echo "$output" | grep -oP 'Created tag \Kv[^\s]+' || true)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger publish-fork
+        if: steps.release.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run publish-fork.yml --repo malaporte/nopecode --ref ${{ steps.release.outputs.tag }}
