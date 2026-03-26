@@ -5,7 +5,12 @@
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
     "@semantic-release/changelog",
-    ["@semantic-release/npm", { "npmPublish": false, "pkgRoot": "packages/opencode" }],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "node -e \"const fs=require('fs'),p=JSON.parse(fs.readFileSync('packages/opencode/package.json'));p.version='${nextRelease.version}';fs.writeFileSync('packages/opencode/package.json',JSON.stringify(p,null,2)+'\\n')\""
+      }
+    ],
     [
       "@semantic-release/git",
       {
