@@ -38,6 +38,7 @@ export namespace LLM {
     abort: AbortSignal
     messages: ModelMessage[]
     small?: boolean
+    light?: boolean
     tools: Record<string, Tool>
     retries?: number
     toolChoice?: "auto" | "required" | "none"
@@ -71,7 +72,7 @@ export namespace LLM {
     system.push(
       [
         // use agent prompt otherwise provider prompt
-        ...(input.agent.prompt ? [input.agent.prompt] : SystemPrompt.provider(input.model)),
+        ...(input.agent.prompt ? [input.agent.prompt] : SystemPrompt.provider(input.model, input.light)),
         // any custom prompt passed into this call
         ...input.system,
         // any custom prompt from last user message

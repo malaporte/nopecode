@@ -16,7 +16,7 @@ import { Skill } from "@/skill"
 import { Config } from "@/config/config"
 
 export namespace SystemPrompt {
-  export function provider(model: Provider.Model) {
+  export function provider(model: Provider.Model, _light?: boolean) {
     if (model.api.id.includes("gpt-4") || model.api.id.includes("o1") || model.api.id.includes("o3"))
       return [PROMPT_BEAST]
     if (model.api.id.includes("gpt")) return [PROMPT_CODEX]

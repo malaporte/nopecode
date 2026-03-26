@@ -410,6 +410,32 @@ export function Session() {
       },
     },
     {
+      title: session()?.light?.enabled ? "Disable light mode" : "Enable light mode",
+      value: "session.light",
+      category: "Session",
+      slash: {
+        name: "light",
+      },
+      onSelect: async (dialog) => {
+        const next = session()?.light?.enabled !== true
+        await sdk.client.session
+          .update({
+            sessionID: route.sessionID,
+            light: { enabled: next },
+          })
+          .then(() => {
+            toast.show({
+              message: next ? "Light mode enabled" : "Light mode disabled",
+              variant: "info",
+            })
+          })
+          .catch(() => {
+            toast.show({ message: "Failed to update light setting", variant: "error" })
+          })
+        dialog.clear()
+      },
+    },
+    {
       title: "Jump to message",
       value: "session.timeline",
       keybind: "session_timeline",

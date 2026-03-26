@@ -208,6 +208,7 @@ export namespace JsonMigration {
           directory: data.directory ?? "",
           title: data.title ?? "",
           version: data.version ?? "",
+          light: data.light ?? null,
           share_url: data.share?.url ?? null,
           summary_additions: data.summary?.additions ?? null,
           summary_deletions: data.summary?.deletions ?? null,
