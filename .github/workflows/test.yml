@@ -18,6 +18,7 @@ permissions:
 
 jobs:
   unit:
+    if: false # disabled in fork
     name: unit (${{ matrix.settings.name }})
     strategy:
       fail-fast: false
@@ -49,6 +50,7 @@ jobs:
         run: bun turbo test
 
   e2e:
+    if: false # disabled in fork
     name: e2e (${{ matrix.settings.name }})
     strategy:
       fail-fast: false
