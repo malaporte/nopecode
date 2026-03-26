@@ -30,4 +30,4 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: bun run node_modules/.bin/semantic-release
+        run: bun run node_modules/.bin/semantic-release --repository-url https://x-access-token:${GITHUB_TOKEN}@github.com/malaporte/nopecode.git
