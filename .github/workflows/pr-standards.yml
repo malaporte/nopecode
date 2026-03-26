@@ -6,6 +6,7 @@ on:
 
 jobs:
   check-standards:
+    if: false # disabled in fork
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -153,6 +154,7 @@ jobs:
             console.log('PR meets all standards');
 
   check-compliance:
+    if: false # disabled in fork
     runs-on: ubuntu-latest
     permissions:
       contents: read
