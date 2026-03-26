@@ -1,3 +1,10 @@
+## [1000.17.2](https://github.com/malaporte/nopecode/compare/v1000.17.1...v1000.17.2) (2026-03-26)
+
+
+### Bug Fixes
+
+* **ci:** trigger publish-fork after semantic-release creates a tag ([d6c0d0e](https://github.com/malaporte/nopecode/commit/d6c0d0e9fe928f7c0e9825b35b7c6015bbb355b6))
+
 ## [1000.17.1](https://github.com/malaporte/nopecode/compare/v1000.17.0...v1000.17.1) (2026-03-26)
 
 
