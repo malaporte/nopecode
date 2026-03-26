@@ -9,6 +9,7 @@ import { useCommandDialog } from "@tui/component/dialog-command"
 import { useKeybind } from "../../context/keybind"
 import { Flag } from "@/flag/flag"
 import { useTerminalDimensions } from "@opentui/solid"
+import { useToast } from "@tui/ui/toast"
 
 const Title = (props: { session: Accessor<Session> }) => {
   const { theme } = useTheme()
@@ -19,13 +20,25 @@ const Title = (props: { session: Accessor<Session> }) => {
   )
 }
 
-const ContextInfo = (props: { context: Accessor<string | undefined>; cost: Accessor<string> }) => {
+const ContextInfo = (props: {
+  context: Accessor<string | undefined>
+  cost: Accessor<string>
+  onCostClick: () => void
+}) => {
   const { theme } = useTheme()
   return (
     <Show when={props.context()}>
-      <text fg={theme.textMuted} wrapMode="none" flexShrink={0}>
-        {props.context()} ({props.cost()})
-      </text>
+      <box flexDirection="row" flexShrink={0}>
+        <text fg={theme.textMuted} wrapMode="none">
+          {props.context()} (
+        </text>
+        <text fg={theme.textMuted} wrapMode="none" onMouseDown={props.onCostClick}>
+          {props.cost()}
+        </text>
+        <text fg={theme.textMuted} wrapMode="none">
+          )
+        </text>
+      </box>
     </Show>
   )
 }
@@ -48,10 +61,13 @@ export function Header() {
   const messages = createMemo(() => sync.data.message[route.sessionID] ?? [])
 
   const cost = createMemo(() => {
+    const msgs = messages()
+    const isKiro = msgs.findLast((x) => x.role === "assistant")?.providerID === "kiro"
     const total = pipe(
-      messages(),
+      msgs,
       sumBy((x) => (x.role === "assistant" ? x.cost : 0)),
     )
+    if (isKiro) return "✦" + total.toFixed(2)
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
@@ -82,9 +98,22 @@ export function Header() {
   const { theme } = useTheme()
   const keybind = useKeybind()
   const command = useCommandDialog()
+  const toast = useToast()
   const [hover, setHover] = createSignal<"parent" | "prev" | "next" | null>(null)
   const dimensions = useTerminalDimensions()
   const narrow = createMemo(() => dimensions().width < 80)
+
+  const rawCost = createMemo(() => {
+    const msgs = messages()
+    const isKiro = msgs.findLast((x) => x.role === "assistant")?.providerID === "kiro"
+    const total = pipe(
+      msgs,
+      sumBy((x) => (x.role === "assistant" ? x.cost : 0)),
+    )
+    return isKiro ? "✦" + total : "$" + total
+  })
+
+  const onCostClick = () => toast.show({ message: rawCost(), variant: "info" })
 
   return (
     <box flexShrink={0}>
@@ -116,7 +145,7 @@ export function Header() {
                   </text>
                 )}
 
-                <ContextInfo context={context} cost={cost} />
+                <ContextInfo context={context} cost={cost} onCostClick={onCostClick} />
               </box>
               <box flexDirection="row" gap={2}>
                 <box
@@ -162,7 +191,7 @@ export function Header() {
               ) : (
                 <Title session={session} />
               )}
-              <ContextInfo context={context} cost={cost} />
+              <ContextInfo context={context} cost={cost} onCostClick={onCostClick} />
             </box>
           </Match>
         </Switch>

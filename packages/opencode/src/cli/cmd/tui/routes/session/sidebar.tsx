@@ -11,6 +11,7 @@ import { useKeybind } from "../../context/keybind"
 import { useDirectory } from "../../context/directory"
 import { useKV } from "../../context/kv"
 import { TodoItem } from "../../component/todo-item"
+import { useToast } from "@tui/ui/toast"
 
 export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const sync = useSync()
@@ -43,12 +44,24 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   )
 
   const cost = createMemo(() => {
-    const total = messages().reduce((sum, x) => sum + (x.role === "assistant" ? x.cost : 0), 0)
+    const msgs = messages()
+    const isKiro = msgs.findLast((x) => x.role === "assistant")?.providerID === "kiro"
+    const total = msgs.reduce((sum, x) => sum + (x.role === "assistant" ? x.cost : 0), 0)
+    if (isKiro) return "✦" + total.toFixed(2)
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
     }).format(total)
   })
+
+  const rawCost = createMemo(() => {
+    const msgs = messages()
+    const isKiro = msgs.findLast((x) => x.role === "assistant")?.providerID === "kiro"
+    const total = msgs.reduce((sum, x) => sum + (x.role === "assistant" ? x.cost : 0), 0)
+    return isKiro ? "✦" + total : "$" + total
+  })
+
+  const toast = useToast()
 
   const context = createMemo(() => {
     const last = messages().findLast((x) => x.role === "assistant" && x.tokens.output > 0) as AssistantMessage
@@ -106,7 +119,9 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
               </text>
               <text fg={theme.textMuted}>{context()?.tokens ?? 0} tokens</text>
               <text fg={theme.textMuted}>{context()?.percentage ?? 0}% used</text>
-              <text fg={theme.textMuted}>{cost()} spent</text>
+              <text fg={theme.textMuted} onMouseDown={() => toast.show({ message: rawCost(), variant: "info" })}>
+                {cost()} spent
+              </text>
             </box>
             <Show when={mcpEntries().length > 0}>
               <box>
