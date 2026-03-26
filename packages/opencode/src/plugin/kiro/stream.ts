@@ -12,6 +12,7 @@ interface StreamEvent {
   delta?: any
   index?: number
   usage?: any
+  providerMetadata?: any
 }
 
 interface State {
@@ -225,6 +226,7 @@ function toOpenAI(event: StreamEvent, id: string, model: string): any {
       },
       cache_creation_input_tokens: event.usage?.cache_creation_input_tokens || 0,
     }
+    if (event.providerMetadata?.kiro) base.providerMetadata = event.providerMetadata
   }
 
   return base
@@ -502,6 +504,7 @@ export async function* transformStream(response: Response, model: string, conver
           cache_creation_input_tokens: cacheWrite,
           cache_read_input_tokens: cacheRead,
         },
+        providerMetadata: { kiro: { credits } },
       },
       conversation,
       model,

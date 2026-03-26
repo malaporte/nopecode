@@ -880,6 +880,9 @@ export namespace Session {
         },
       }
 
+      const kiroCredits = (input.metadata?.["kiro"] as any)?.["credits"] as number | undefined
+      if (kiroCredits !== undefined) return { cost: safe(kiroCredits), tokens }
+
       const costInfo =
         input.model.cost?.experimentalOver200K && tokens.input + tokens.cache.read > 200_000
           ? input.model.cost.experimentalOver200K
