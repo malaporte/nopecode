@@ -27,7 +27,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { createVertex } from "@ai-sdk/google-vertex"
 import { createVertexAnthropic } from "@ai-sdk/google-vertex/anthropic"
 import { createOpenAI } from "@ai-sdk/openai"
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
+import { createOpenAICompatible, OpenAICompatibleChatLanguageModel } from "@ai-sdk/openai-compatible"
 import { createOpenRouter, type LanguageModelV2 } from "@openrouter/ai-sdk-provider"
 import { createOpenaiCompatible as createGitHubCopilotOpenAICompatible } from "./sdk/copilot"
 import { createXai } from "@ai-sdk/xai"
@@ -747,6 +747,34 @@ export namespace Provider {
             "X-Title": "opencode",
           },
         },
+      }
+    },
+    kiro: async () => {
+      return {
+        autoload: false,
+        async getModel(sdk: any, modelID: string) {
+          const base = sdk.languageModel(modelID)
+          return new OpenAICompatibleChatLanguageModel(modelID, {
+            ...(base as any).config,
+            metadataExtractor: {
+              extractMetadata: async () => undefined,
+              createStreamExtractor() {
+                let credits: number | undefined
+                return {
+                  processChunk(raw: any) {
+                    const c = raw?.providerMetadata?.kiro?.credits
+                    if (typeof c === "number") credits = (credits ?? 0) + c
+                  },
+                  buildMetadata() {
+                    if (credits === undefined) return undefined
+                    return { kiro: { credits } }
+                  },
+                }
+              },
+            },
+          })
+        },
+        options: {},
       }
     },
   }
