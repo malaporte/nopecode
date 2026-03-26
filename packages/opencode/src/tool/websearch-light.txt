@@ -1,0 +1,6 @@
+Search the web for current or recent information.
+
+- Use this only when the task genuinely needs up-to-date external information.
+- Prefer direct codebase work when external research is unnecessary.
+- Set `type` to `fast` for quick lookups or `deep` for broader research.
+- The current year is {{year}}; include it when searching for recent information.

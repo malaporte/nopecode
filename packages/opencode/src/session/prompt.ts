@@ -670,6 +670,7 @@ export namespace SessionPrompt {
         permission: session.permission,
         abort,
         sessionID,
+        light: session.light?.enabled,
         system,
         messages: [
           ...MessageV2.toModelMessages(msgs, model),
@@ -793,6 +794,7 @@ export namespace SessionPrompt {
     for (const item of await ToolRegistry.tools(
       { modelID: ModelID.make(input.model.api.id), providerID: input.model.providerID },
       input.agent,
+      input.session.light?.enabled,
     )) {
       const schema = ProviderTransform.schema(input.model, z.toJSONSchema(item.parameters))
       tools[item.id] = tool({
@@ -1971,6 +1973,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       model,
       abort: new AbortController().signal,
       sessionID: input.session.id,
+      light: input.session.light?.enabled,
       retries: 2,
       messages: [
         {

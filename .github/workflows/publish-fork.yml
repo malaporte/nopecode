@@ -102,7 +102,7 @@ jobs:
     needs:
       - build-cli
       - release
-    if: github.repository == 'malaporte/nopecode'
+    if: false # disabled for faster CI; re-enable to build desktop Tauri app
     runs-on: ${{ matrix.settings.host }}
     env:
       HAS_APPLE_API: ${{ secrets.APPLE_API_KEY != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_API_KEY_PATH != '' }}
@@ -246,7 +246,7 @@ jobs:
     needs:
       - build-cli
       - release
-    if: github.repository == 'malaporte/nopecode'
+    if: false # disabled for faster CI; re-enable to build desktop Electron app
     runs-on: ${{ matrix.settings.host }}
     env:
       HAS_APPLE_API: ${{ secrets.APPLE_API_KEY != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_API_KEY_PATH != '' }}
@@ -385,8 +385,8 @@ jobs:
     needs:
       - release
       - build-cli
-      - build-tauri
-      - build-electron
+      # - build-tauri   # disabled
+      # - build-electron  # disabled
     runs-on: ubuntu-24.04
     if: github.repository == 'malaporte/nopecode'
     steps:
@@ -396,21 +396,21 @@ jobs:
 
       - uses: ./.github/actions/setup-bun
 
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: latest-yml-*
-          path: /tmp/latest-yml
+      # - uses: actions/download-artifact@v4  # disabled (build-electron disabled)
+      #   with:
+      #     pattern: latest-yml-*
+      #     path: /tmp/latest-yml
 
-      - name: Finalize updater metadata
-        env:
-          OPENCODE_VERSION: ${{ needs.release.outputs.version }}
-          OPENCODE_RELEASE: ${{ needs.release.outputs.release }}
-          GH_REPO: ${{ needs.release.outputs.repo }}
-          GH_TOKEN: ${{ github.token }}
-          LATEST_YML_DIR: /tmp/latest-yml
-        run: |
-          bun ./packages/desktop/scripts/finalize-latest-json.ts
-          bun ./packages/desktop-electron/scripts/finalize-latest-yml.ts
+      # - name: Finalize updater metadata  # disabled (build-tauri and build-electron disabled)
+      #   env:
+      #     OPENCODE_VERSION: ${{ needs.release.outputs.version }}
+      #     OPENCODE_RELEASE: ${{ needs.release.outputs.release }}
+      #     GH_REPO: ${{ needs.release.outputs.repo }}
+      #     GH_TOKEN: ${{ github.token }}
+      #     LATEST_YML_DIR: /tmp/latest-yml
+      #   run: |
+      #     bun ./packages/desktop/scripts/finalize-latest-json.ts
+      #     bun ./packages/desktop-electron/scripts/finalize-latest-yml.ts
 
       - name: Verify CLI release assets
         env:

@@ -1,0 +1,12 @@
+Create or update a task list for the current session.
+
+Use this for clearly multi-step or non-trivial work, especially when there are several tasks to track.
+
+Skip it for simple one-step tasks or purely conversational questions.
+
+Rules:
+- Keep tasks specific and actionable.
+- Have at most one task `in_progress` at a time.
+- Mark tasks complete immediately after finishing them.
+- Add follow-up tasks if new work appears.
+- Cancel tasks that are no longer relevant.

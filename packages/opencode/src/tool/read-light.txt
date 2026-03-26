@@ -1,0 +1,8 @@
+Read a file or directory from the local filesystem.
+
+- Use an absolute `filePath`.
+- Use `offset` to continue later in a file and `limit` to control window size.
+- Prefer larger reads over many tiny slices.
+- Use `glob` to find paths by name and `grep` to search by content.
+- Directory entries are returned one per line, with `/` for subdirectories.
+- Long lines may be truncated.

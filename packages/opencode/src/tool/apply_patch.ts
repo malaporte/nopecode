@@ -12,16 +12,17 @@ import { trimDiff } from "./edit"
 import { LSP } from "../lsp"
 import { Filesystem } from "../util/filesystem"
 import DESCRIPTION from "./apply_patch.txt"
+import LIGHT from "./apply_patch-light.txt"
 import { File } from "../file"
 
 const PatchParams = z.object({
   patchText: z.string().describe("The full patch text that describes all changes to be made"),
 })
 
-export const ApplyPatchTool = Tool.define("apply_patch", {
-  description: DESCRIPTION,
+export const ApplyPatchTool = Tool.define("apply_patch", async (ctx) => ({
+  description: ctx?.light ? LIGHT : DESCRIPTION,
   parameters: PatchParams,
-  async execute(params, ctx) {
+  async execute(params: z.infer<typeof PatchParams>, ctx) {
     if (!params.patchText) {
       throw new Error("patchText is required")
     }
@@ -278,4 +279,4 @@ export const ApplyPatchTool = Tool.define("apply_patch", {
       output,
     }
   },
-})
+}))

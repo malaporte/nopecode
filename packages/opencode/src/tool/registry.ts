@@ -47,6 +47,7 @@ export namespace ToolRegistry {
     readonly tools: (
       model: { providerID: ProviderID; modelID: ModelID },
       agent?: Agent.Info,
+      light?: boolean,
     ) => Effect.Effect<(Awaited<ReturnType<Tool.Info["init"]>> & { id: string })[]>
   }
 
@@ -161,6 +162,7 @@ export namespace ToolRegistry {
       const tools = Effect.fn("ToolRegistry.tools")(function* (
         model: { providerID: ProviderID; modelID: ModelID },
         agent?: Agent.Info,
+        light?: boolean,
       ) {
         const state = yield* InstanceState.get(cache)
         const allTools = yield* Effect.promise(() => all(state.custom))
@@ -183,7 +185,7 @@ export namespace ToolRegistry {
               })
               .map(async (tool) => {
                 using _ = log.time(tool.id)
-                const next = await tool.init({ agent })
+                const next = await tool.init({ agent, light })
                 const output = {
                   description: next.description,
                   parameters: next.parameters,
@@ -220,7 +222,8 @@ export namespace ToolRegistry {
       modelID: ModelID
     },
     agent?: Agent.Info,
+    light?: boolean,
   ) {
-    return runPromise((svc) => svc.tools(model, agent))
+    return runPromise((svc) => svc.tools(model, agent, light))
   }
 }

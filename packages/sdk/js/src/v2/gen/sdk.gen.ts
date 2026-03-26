@@ -1320,6 +1320,9 @@ export class Session2 extends HeyApiClient {
       workspace?: string
       parentID?: string
       title?: string
+      light?: {
+        enabled?: boolean
+      }
       permission?: PermissionRuleset
       workspaceID?: string
     },
@@ -1334,6 +1337,7 @@ export class Session2 extends HeyApiClient {
             { in: "query", key: "workspace" },
             { in: "body", key: "parentID" },
             { in: "body", key: "title" },
+            { in: "body", key: "light" },
             { in: "body", key: "permission" },
             { in: "body", key: "workspaceID" },
           ],
@@ -1457,6 +1461,9 @@ export class Session2 extends HeyApiClient {
       directory?: string
       workspace?: string
       title?: string
+      light?: {
+        enabled?: boolean
+      }
       time?: {
         archived?: number
       }
@@ -1472,6 +1479,7 @@ export class Session2 extends HeyApiClient {
             { in: "query", key: "directory" },
             { in: "query", key: "workspace" },
             { in: "body", key: "title" },
+            { in: "body", key: "light" },
             { in: "body", key: "time" },
           ],
         },

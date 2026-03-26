@@ -25,6 +25,7 @@ export const SessionTable = sqliteTable(
     directory: text().notNull(),
     title: text().notNull(),
     version: text().notNull(),
+    light: text({ mode: "json" }).$type<{ enabled?: boolean }>(),
     share_url: text(),
     summary_additions: integer(),
     summary_deletions: integer(),

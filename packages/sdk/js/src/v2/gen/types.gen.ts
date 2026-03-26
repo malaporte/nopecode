@@ -812,6 +812,9 @@ export type Session = {
   workspaceID?: string
   directory: string
   parentID?: string
+  light?: {
+    enabled?: boolean
+  }
   summary?: {
     additions: number
     deletions: number
@@ -1711,6 +1714,9 @@ export type GlobalSession = {
   workspaceID?: string
   directory: string
   parentID?: string
+  light?: {
+    enabled?: boolean
+  }
   summary?: {
     additions: number
     deletions: number
@@ -1793,32 +1799,6 @@ export type SubtaskPartInput = {
   }
   command?: string
 }
-
-export type ProviderAuthPrompt =
-  | {
-      type: "text"
-      key: string
-      message: string
-      placeholder?: string
-      condition?: {
-        key: string
-        value: string
-      }
-    }
-  | {
-      type: "select"
-      key: string
-      message: string
-      options: Array<{
-        label: string
-        value: string
-        hint?: string
-      }>
-      condition?: {
-        key: string
-        value: string
-      }
-    }
 
 export type ProviderAuthMethod = {
   type: "oauth" | "api"
@@ -2887,6 +2867,9 @@ export type SessionCreateData = {
   body?: {
     parentID?: string
     title?: string
+    light?: {
+      enabled?: boolean
+    }
     permission?: PermissionRuleset
     workspaceID?: string
   }
@@ -3017,6 +3000,9 @@ export type SessionGetResponse = SessionGetResponses[keyof SessionGetResponses]
 export type SessionUpdateData = {
   body?: {
     title?: string
+    light?: {
+      enabled?: boolean
+    }
     time?: {
       archived?: number
     }

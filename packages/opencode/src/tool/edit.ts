@@ -9,6 +9,7 @@ import { Tool } from "./tool"
 import { LSP } from "../lsp"
 import { createTwoFilesPatch, diffLines } from "diff"
 import DESCRIPTION from "./edit.txt"
+import LIGHT from "./edit-light.txt"
 import { File } from "../file"
 import { FileWatcher } from "../file/watcher"
 import { Bus } from "../bus"
@@ -19,6 +20,12 @@ import { Snapshot } from "@/snapshot"
 import { assertExternalDirectory } from "./external-directory"
 
 const MAX_DIAGNOSTICS_PER_FILE = 20
+const parameters = z.object({
+  filePath: z.string().describe("The absolute path to the file to modify"),
+  oldString: z.string().describe("The text to replace"),
+  newString: z.string().describe("The text to replace it with (must be different from oldString)"),
+  replaceAll: z.boolean().optional().describe("Replace all occurrences of oldString (default false)"),
+})
 
 function normalizeLineEndings(text: string): string {
   return text.replaceAll("\r\n", "\n")
@@ -33,15 +40,10 @@ function convertToLineEnding(text: string, ending: "\n" | "\r\n"): string {
   return text.replaceAll("\n", "\r\n")
 }
 
-export const EditTool = Tool.define("edit", {
-  description: DESCRIPTION,
-  parameters: z.object({
-    filePath: z.string().describe("The absolute path to the file to modify"),
-    oldString: z.string().describe("The text to replace"),
-    newString: z.string().describe("The text to replace it with (must be different from oldString)"),
-    replaceAll: z.boolean().optional().describe("Replace all occurrences of oldString (default false)"),
-  }),
-  async execute(params, ctx) {
+export const EditTool = Tool.define("edit", async (ctx) => ({
+  description: ctx?.light ? LIGHT : DESCRIPTION,
+  parameters,
+  async execute(params: z.infer<typeof parameters>, ctx) {
     if (!params.filePath) {
       throw new Error("filePath is required")
     }
@@ -165,7 +167,7 @@ export const EditTool = Tool.define("edit", {
       output,
     }
   },
-})
+}))
 
 export type Replacer = (content: string, find: string) => Generator<string, void, unknown>
 

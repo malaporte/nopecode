@@ -1,0 +1,8 @@
+Perform exact string replacements in a file.
+
+- Read the file first in the current conversation.
+- Match `oldString` exactly, preserving indentation and whitespace from the file content.
+- Do not include Read line-number prefixes in `oldString` or `newString`.
+- Prefer editing existing files instead of creating new ones.
+- Use `replaceAll` for repeated replacements or renames across the file.
+- If `oldString` is missing or ambiguous, provide more surrounding context.
