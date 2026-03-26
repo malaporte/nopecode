@@ -1,0 +1,11 @@
+Launch a subagent for complex delegated work.
+
+Available agent types:
+{agents}
+
+- Set `subagent_type` to exactly one of the available agent names listed above.
+- Use this for substantial parallelizable or multi-step work, not for simple file reads or small edits.
+- In `prompt`, state whether the subagent should do research only or also write code.
+- Ask the subagent to return one concise final result.
+- If you can do the work directly with normal tools, prefer that.
+- Launch multiple subagents in parallel only when their work is independent.

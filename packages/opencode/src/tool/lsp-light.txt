@@ -1,0 +1,5 @@
+Query the language server for code intelligence.
+
+- Use this for definitions, references, hover info, symbols, implementations, or call hierarchy.
+- Provide a file path plus 1-based line and character.
+- Use it when semantic code navigation is more helpful than plain text search.

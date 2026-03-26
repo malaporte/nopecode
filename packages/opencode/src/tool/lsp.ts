@@ -3,6 +3,7 @@ import { Tool } from "./tool"
 import path from "path"
 import { LSP } from "../lsp"
 import DESCRIPTION from "./lsp.txt"
+import LIGHT from "./lsp-light.txt"
 import { Instance } from "../project/instance"
 import { pathToFileURL } from "url"
 import { assertExternalDirectory } from "./external-directory"
@@ -20,15 +21,17 @@ const operations = [
   "outgoingCalls",
 ] as const
 
-export const LspTool = Tool.define("lsp", {
-  description: DESCRIPTION,
-  parameters: z.object({
-    operation: z.enum(operations).describe("The LSP operation to perform"),
-    filePath: z.string().describe("The absolute or relative path to the file"),
-    line: z.number().int().min(1).describe("The line number (1-based, as shown in editors)"),
-    character: z.number().int().min(1).describe("The character offset (1-based, as shown in editors)"),
-  }),
-  execute: async (args, ctx) => {
+const parameters = z.object({
+  operation: z.enum(operations).describe("The LSP operation to perform"),
+  filePath: z.string().describe("The absolute or relative path to the file"),
+  line: z.number().int().min(1).describe("The line number (1-based, as shown in editors)"),
+  character: z.number().int().min(1).describe("The character offset (1-based, as shown in editors)"),
+})
+
+export const LspTool = Tool.define("lsp", async (ctx) => ({
+  description: ctx?.light ? LIGHT : DESCRIPTION,
+  parameters,
+  execute: async (args: z.infer<typeof parameters>, ctx) => {
     const file = path.isAbsolute(args.filePath) ? args.filePath : path.join(Instance.directory, args.filePath)
     await assertExternalDirectory(ctx, file)
 
@@ -60,7 +63,7 @@ export const LspTool = Tool.define("lsp", {
 
     await LSP.touchFile(file, true)
 
-    const result: unknown[] = await (async () => {
+    const result = await (async (): Promise<unknown[]> => {
       switch (args.operation) {
         case "goToDefinition":
           return LSP.definition(position)
@@ -81,6 +84,7 @@ export const LspTool = Tool.define("lsp", {
         case "outgoingCalls":
           return LSP.outgoingCalls(position)
       }
+      return []
     })()
 
     const output = (() => {
@@ -94,4 +98,4 @@ export const LspTool = Tool.define("lsp", {
       output,
     }
   },
-})
+}))

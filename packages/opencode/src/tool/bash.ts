@@ -3,6 +3,7 @@ import { spawn } from "child_process"
 import { Tool } from "./tool"
 import path from "path"
 import DESCRIPTION from "./bash.txt"
+import LIGHT from "./bash-light.txt"
 import { Log } from "../util/log"
 import { Instance } from "../project/instance"
 import { lazy } from "@/util/lazy"
@@ -21,6 +22,34 @@ import { Config } from "@/config/config"
 
 const MAX_METADATA_LENGTH = 30_000
 const DEFAULT_TIMEOUT = Flag.OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS || 2 * 60 * 1000
+const schema = () =>
+  z.object({
+    command: z.string().describe("The command to execute"),
+    timeout: z.number().describe("Optional timeout in milliseconds").optional(),
+    workdir: z
+      .string()
+      .describe(
+        `The working directory to run the command in. Defaults to ${Instance.directory}. Use this instead of 'cd' commands.`,
+      )
+      .optional(),
+    description: z
+      .string()
+      .describe(
+        "Clear, concise description of what this command does in 5-10 words. Examples:\nInput: ls\nOutput: Lists files in current directory\n\nInput: git status\nOutput: Shows working tree status\n\nInput: npm install\nOutput: Installs package dependencies\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
+      ),
+    unsandboxed: z
+      .boolean()
+      .describe(
+        "Set to true to run this command on the host instead of inside the sandbox. Requires user approval. Only use when the command genuinely cannot work inside the sandbox. Examples: build tools that require native binaries (e.g. bun typecheck, bun build), package managers that need network access, or commands that must read/write paths outside the project.",
+      )
+      .optional(),
+    unsandboxed_reason: z
+      .string()
+      .describe(
+        "Required when unsandboxed is true. Explain why this command cannot run inside the sandbox (e.g. 'requires native binary unavailable in sandbox', 'needs network access to install packages').",
+      )
+      .optional(),
+  })
 
 export const log = Log.create({ service: "bash-tool" })
 
@@ -53,42 +82,19 @@ const parser = lazy(async () => {
 })
 
 // TODO: we may wanna rename this tool so it works better on other shells
-export const BashTool = Tool.define("bash", async () => {
+export const BashTool = Tool.define("bash", async (ctx) => {
   const shell = Shell.acceptable()
   log.info("bash tool using shell", { shell })
+  const description = (ctx?.light ? LIGHT : DESCRIPTION)
+    .replaceAll("${directory}", Instance.directory)
+    .replaceAll("${maxLines}", String(Truncate.MAX_LINES))
+    .replaceAll("${maxBytes}", String(Truncate.MAX_BYTES))
+  const parameters = schema()
 
   return {
-    description: DESCRIPTION.replaceAll("${directory}", Instance.directory)
-      .replaceAll("${maxLines}", String(Truncate.MAX_LINES))
-      .replaceAll("${maxBytes}", String(Truncate.MAX_BYTES)),
-    parameters: z.object({
-      command: z.string().describe("The command to execute"),
-      timeout: z.number().describe("Optional timeout in milliseconds").optional(),
-      workdir: z
-        .string()
-        .describe(
-          `The working directory to run the command in. Defaults to ${Instance.directory}. Use this instead of 'cd' commands.`,
-        )
-        .optional(),
-      description: z
-        .string()
-        .describe(
-          "Clear, concise description of what this command does in 5-10 words. Examples:\nInput: ls\nOutput: Lists files in current directory\n\nInput: git status\nOutput: Shows working tree status\n\nInput: npm install\nOutput: Installs package dependencies\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
-        ),
-      unsandboxed: z
-        .boolean()
-        .describe(
-          "Set to true to run this command on the host instead of inside the sandbox. Requires user approval. Only use when the command genuinely cannot work inside the sandbox. Examples: build tools that require native binaries (e.g. bun typecheck, bun build), package managers that need network access, or commands that must read/write paths outside the project.",
-        )
-        .optional(),
-      unsandboxed_reason: z
-        .string()
-        .describe(
-          "Required when unsandboxed is true. Explain why this command cannot run inside the sandbox (e.g. 'requires native binary unavailable in sandbox', 'needs network access to install packages').",
-        )
-        .optional(),
-    }),
-    async execute(params, ctx) {
+    description,
+    parameters,
+    async execute(params: z.infer<ReturnType<typeof schema>>, ctx) {
       const cwd = params.workdir || Instance.directory
       if (params.timeout !== undefined && params.timeout < 0) {
         throw new Error(`Invalid timeout value: ${params.timeout}. Timeout must be a positive number.`)

@@ -1,14 +1,17 @@
 import z from "zod"
 import { Tool } from "./tool"
 import DESCRIPTION_WRITE from "./todowrite.txt"
+import LIGHT from "./todowrite-light.txt"
 import { Todo } from "../session/todo"
 
-export const TodoWriteTool = Tool.define("todowrite", {
-  description: DESCRIPTION_WRITE,
-  parameters: z.object({
-    todos: z.array(z.object(Todo.Info.shape)).describe("The updated todo list"),
-  }),
-  async execute(params, ctx) {
+const parameters = z.object({
+  todos: z.array(z.object(Todo.Info.shape)).describe("The updated todo list"),
+})
+
+export const TodoWriteTool = Tool.define("todowrite", async (ctx) => ({
+  description: ctx?.light ? LIGHT : DESCRIPTION_WRITE,
+  parameters,
+  async execute(params: z.infer<typeof parameters>, ctx) {
     await ctx.ask({
       permission: "todowrite",
       patterns: ["*"],
@@ -28,7 +31,7 @@ export const TodoWriteTool = Tool.define("todowrite", {
       },
     }
   },
-})
+}))
 
 export const TodoReadTool = Tool.define("todoread", {
   description: "Use this tool to read your todo list",

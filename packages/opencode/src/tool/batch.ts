@@ -2,24 +2,26 @@ import z from "zod"
 import { Tool } from "./tool"
 import { ProviderID, ModelID } from "../provider/schema"
 import DESCRIPTION from "./batch.txt"
+import LIGHT from "./batch-light.txt"
 
 const DISALLOWED = new Set(["batch"])
 const FILTERED_FROM_SUGGESTIONS = new Set(["invalid", "patch", ...DISALLOWED])
+const parameters = z.object({
+  tool_calls: z
+    .array(
+      z.object({
+        tool: z.string().describe("The name of the tool to execute"),
+        parameters: z.object({}).loose().describe("Parameters for the tool"),
+      }),
+    )
+    .min(1, "Provide at least one tool call")
+    .describe("Array of tool calls to execute in parallel"),
+})
 
-export const BatchTool = Tool.define("batch", async () => {
+export const BatchTool = Tool.define("batch", async (ctx) => {
   return {
-    description: DESCRIPTION,
-    parameters: z.object({
-      tool_calls: z
-        .array(
-          z.object({
-            tool: z.string().describe("The name of the tool to execute"),
-            parameters: z.object({}).loose().describe("Parameters for the tool"),
-          }),
-        )
-        .min(1, "Provide at least one tool call")
-        .describe("Array of tool calls to execute in parallel"),
-    }),
+    description: ctx?.light ? LIGHT : DESCRIPTION,
+    parameters,
     formatValidationError(error) {
       const formattedErrors = error.issues
         .map((issue) => {
@@ -30,7 +32,7 @@ export const BatchTool = Tool.define("batch", async () => {
 
       return `Invalid parameters for tool 'batch':\n${formattedErrors}\n\nExpected payload format:\n  [{"tool": "tool_name", "parameters": {...}}, {...}]`
     },
-    async execute(params, ctx) {
+    async execute(params: z.infer<typeof parameters>, ctx) {
       const { Session } = await import("../session")
       const { PartID } = await import("../session/schema")
 
@@ -168,7 +170,9 @@ export const BatchTool = Tool.define("batch", async () => {
       return {
         title: `Batch execution (${successfulCalls}/${results.length} successful)`,
         output: outputMessage,
-        attachments: results.filter((result) => result.success).flatMap((r) => r.result.attachments ?? []),
+        attachments: results
+          .filter((result) => result.success)
+          .flatMap((r) => (r.success ? (r.result.attachments ?? []) : [])),
         metadata: {
           totalCalls: results.length,
           successful: successfulCalls,

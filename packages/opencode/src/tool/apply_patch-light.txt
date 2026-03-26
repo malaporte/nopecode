@@ -1,0 +1,6 @@
+Apply a structured patch to files.
+
+- Wrap the patch in `*** Begin Patch` and `*** End Patch`.
+- Each file section must start with `*** Add File:`, `*** Update File:`, or `*** Delete File:`.
+- Use `+` for every new line, including new-file contents.
+- Use this when a file-oriented patch is cleaner than individual edits.
