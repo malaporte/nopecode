@@ -16,7 +16,10 @@ export async function upgrade() {
 
   if (Installation.VERSION === latest) return
 
-  const autoupdate = config.autoupdate ?? true
+  // FORK: default is false (disabled) — upstream defaults to true, but this fork
+  // must not self-overwrite with older official releases via auto-update.
+  // Manual update is still available via /update and /upgrade in the TUI.
+  const autoupdate = config.autoupdate ?? false
 
   if (autoupdate === false || Flag.OPENCODE_DISABLE_AUTOUPDATE) return
 
