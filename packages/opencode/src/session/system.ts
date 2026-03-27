@@ -5,9 +5,11 @@ import { Instance } from "../project/instance"
 import PROMPT_ANTHROPIC from "./prompt/anthropic.txt"
 import PROMPT_DEFAULT from "./prompt/default.txt"
 import PROMPT_BEAST from "./prompt/beast.txt"
+import PROMPT_BEAST_LIGHT from "./prompt/beast-light.txt"
 import PROMPT_GEMINI from "./prompt/gemini.txt"
 
 import PROMPT_CODEX from "./prompt/codex.txt"
+import PROMPT_CODEX_LIGHT from "./prompt/codex-light.txt"
 import PROMPT_TRINITY from "./prompt/trinity.txt"
 import type { Provider } from "@/provider/provider"
 import type { Agent } from "@/agent/agent"
@@ -15,10 +17,10 @@ import { Permission } from "@/permission"
 import { Skill } from "@/skill"
 
 export namespace SystemPrompt {
-  export function provider(model: Provider.Model) {
+  export function provider(model: Provider.Model, light?: boolean) {
     if (model.api.id.includes("gpt-4") || model.api.id.includes("o1") || model.api.id.includes("o3"))
-      return [PROMPT_BEAST]
-    if (model.api.id.includes("gpt")) return [PROMPT_CODEX]
+      return [light ? PROMPT_BEAST_LIGHT : PROMPT_BEAST]
+    if (model.api.id.includes("gpt")) return [light ? PROMPT_CODEX_LIGHT : PROMPT_CODEX]
     if (model.api.id.includes("gemini-")) return [PROMPT_GEMINI]
     if (model.api.id.includes("claude")) return [PROMPT_ANTHROPIC]
     if (model.api.id.toLowerCase().includes("trinity")) return [PROMPT_TRINITY]

@@ -937,6 +937,9 @@ export type Session = {
     snapshot?: string
     diff?: string
   }
+  light?: {
+    enabled?: boolean
+  }
 }
 
 export type EventSessionCreated = {
@@ -1608,6 +1611,15 @@ export type Config = {
      * Timeout in milliseconds for model context protocol (MCP) requests
      */
     mcp_timeout?: number
+  }
+  /**
+   * Route bash tool commands through a sandboxed container via the `pippin run` CLI
+   */
+  sandbox?: {
+    /**
+     * Enable sandboxed command execution via `pippin run`
+     */
+    enabled?: boolean
   }
 }
 
@@ -2955,6 +2967,9 @@ export type SessionCreateData = {
   body?: {
     parentID?: string
     title?: string
+    light?: {
+      enabled?: boolean
+    }
     permission?: PermissionRuleset
     workspaceID?: string
   }
@@ -3085,6 +3100,9 @@ export type SessionGetResponse = SessionGetResponses[keyof SessionGetResponses]
 export type SessionUpdateData = {
   body?: {
     title?: string
+    light?: {
+      enabled?: boolean
+    }
     time?: {
       archived?: number
     }
