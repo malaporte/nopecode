@@ -1,62 +1,22 @@
 import { test, expect } from "bun:test"
 import path from "path"
+
 import { tmpdir } from "../fixture/fixture"
 import { Instance } from "../../src/project/instance"
 import { Provider } from "../../src/provider/provider"
 import { ProviderID, ModelID } from "../../src/provider/schema"
 import { Env } from "../../src/env"
-import { Auth } from "../../src/auth"
 
-async function project(
-  input: Record<string, unknown> = {
-    $schema: "https://opencode.ai/config.json",
-  },
-) {
-  return tmpdir({
+test("provider loaded from env variable", async () => {
+  await using tmp = await tmpdir({
     init: async (dir) => {
-      await Bun.write(path.join(dir, "opencode.json"), JSON.stringify(input))
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+        }),
+      )
     },
-  })
-}
-
-test("openai provider loads from env variable", async () => {
-  await using tmp = await project()
-  await Instance.provide({
-    directory: tmp.path,
-    init: async () => {
-      Env.set("OPENAI_API_KEY", "test-openai-key")
-    },
-    fn: async () => {
-      const providers = await Provider.list()
-      expect(providers[ProviderID.openai]).toBeDefined()
-      expect(providers[ProviderID.openai].source).toBe("env")
-    },
-  })
-})
-
-test("github-copilot provider loads from oauth auth", async () => {
-  await using tmp = await project()
-  await Instance.provide({
-    directory: tmp.path,
-    init: async () => {
-      await Auth.set("github-copilot", {
-        type: "oauth",
-        access: "access",
-        refresh: "refresh",
-        expires: Date.now() + 60_000,
-      })
-    },
-    fn: async () => {
-      const providers = await Provider.list()
-      expect(providers[ProviderID.make("github-copilot")]).toBeDefined()
-    },
-  })
-})
-
-test("disabled_providers excludes allowed provider", async () => {
-  await using tmp = await project({
-    $schema: "https://opencode.ai/config.json",
-    disabled_providers: ["openai"],
   })
   await Instance.provide({
     directory: tmp.path,
@@ -151,131 +111,98 @@ test("enabled_providers restricts to only listed providers", async () => {
   })
 })
 
-test("enabled_providers narrows within branch allowlist", async () => {
-  await using tmp = await project({
-    $schema: "https://opencode.ai/config.json",
-    enabled_providers: ["openai"],
+test("model whitelist filters models for provider", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+          provider: {
+            anthropic: {
+              whitelist: ["claude-sonnet-4-20250514"],
+            },
+          },
+        }),
+      )
+    },
   })
   await Instance.provide({
     directory: tmp.path,
     init: async () => {
-      Env.set("OPENAI_API_KEY", "test-openai-key")
-      await Auth.set("github-copilot", {
-        type: "oauth",
-        access: "access",
-        refresh: "refresh",
-        expires: Date.now() + 60_000,
-      })
+      Env.set("ANTHROPIC_API_KEY", "test-api-key")
     },
     fn: async () => {
       const providers = await Provider.list()
-      expect(providers[ProviderID.openai]).toBeDefined()
-      expect(providers[ProviderID.make("github-copilot")]).toBeUndefined()
+      expect(providers[ProviderID.anthropic]).toBeDefined()
+      const models = Object.keys(providers[ProviderID.anthropic].models)
+      expect(models).toContain("claude-sonnet-4-20250514")
+      expect(models.length).toBe(1)
     },
   })
 })
 
-test("blocked provider from env is ignored", async () => {
-  const saved = process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
-  delete process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
-  try {
-    await using tmp = await project()
-    await Instance.provide({
-      directory: tmp.path,
-      init: async () => {
-        Env.set("ANTHROPIC_API_KEY", "test-api-key")
-      },
-      fn: async () => {
-        const providers = await Provider.list()
-        expect(providers[ProviderID.anthropic]).toBeUndefined()
-      },
-    })
-  } finally {
-    if (saved !== undefined) process.env["OPENCODE_ALLOW_ALL_PROVIDERS"] = saved
-  }
-})
-
-test("blocked provider from config is ignored", async () => {
-  const saved = process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
-  delete process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
-  try {
-    await using tmp = await project({
-      $schema: "https://opencode.ai/config.json",
-      provider: {
-        anthropic: {
-          options: {
-            apiKey: "config-api-key",
+test("model blacklist excludes specific models", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+          provider: {
+            anthropic: {
+              blacklist: ["claude-sonnet-4-20250514"],
+            },
           },
-        },
-      },
-    })
-    await Instance.provide({
-      directory: tmp.path,
-      fn: async () => {
-        const providers = await Provider.list()
-        expect(providers[ProviderID.anthropic]).toBeUndefined()
-      },
-    })
-  } finally {
-    if (saved !== undefined) process.env["OPENCODE_ALLOW_ALL_PROVIDERS"] = saved
-  }
+        }),
+      )
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    init: async () => {
+      Env.set("ANTHROPIC_API_KEY", "test-api-key")
+    },
+    fn: async () => {
+      const providers = await Provider.list()
+      expect(providers[ProviderID.anthropic]).toBeDefined()
+      const models = Object.keys(providers[ProviderID.anthropic].models)
+      expect(models).not.toContain("claude-sonnet-4-20250514")
+    },
+  })
 })
 
-test("custom provider from config is ignored", async () => {
-  const saved = process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
-  delete process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
-  try {
-    await using tmp = await project({
-      $schema: "https://opencode.ai/config.json",
-      provider: {
-        "custom-provider": {
-          name: "Custom Provider",
-          npm: "@ai-sdk/openai-compatible",
-          api: "https://api.custom.com/v1",
-          env: ["CUSTOM_API_KEY"],
-          models: {
-            "custom-model": {
-              name: "Custom Model",
-              tool_call: true,
-              limit: {
-                context: 128000,
-                output: 4096,
+test("custom model alias via config", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+          provider: {
+            anthropic: {
+              models: {
+                "my-alias": {
+                  id: "claude-sonnet-4-20250514",
+                  name: "My Custom Alias",
+                },
               },
             },
           },
-        },
-      },
-    })
-    await Instance.provide({
-      directory: tmp.path,
-      fn: async () => {
-        const providers = await Provider.list()
-        expect(providers[ProviderID.make("custom-provider")]).toBeUndefined()
-      },
-    })
-  } finally {
-    if (saved !== undefined) process.env["OPENCODE_ALLOW_ALL_PROVIDERS"] = saved
-  }
-})
-
-test("openai model filters still work", async () => {
-  await using tmp = await project({
-    $schema: "https://opencode.ai/config.json",
-    provider: {
-      openai: {
-        whitelist: ["gpt-5.2"],
-      },
+        }),
+      )
     },
   })
   await Instance.provide({
     directory: tmp.path,
     init: async () => {
-      Env.set("OPENAI_API_KEY", "test-openai-key")
+      Env.set("ANTHROPIC_API_KEY", "test-api-key")
     },
     fn: async () => {
       const providers = await Provider.list()
-      expect(providers[ProviderID.openai]).toBeDefined()
-      expect(Object.keys(providers[ProviderID.openai].models)).toEqual(["gpt-5.2"])
+      expect(providers[ProviderID.anthropic]).toBeDefined()
+      expect(providers[ProviderID.anthropic].models["my-alias"]).toBeDefined()
+      expect(providers[ProviderID.anthropic].models["my-alias"].name).toBe("My Custom Alias")
     },
   })
 })
@@ -323,93 +250,112 @@ test("custom provider with npm package", async () => {
   })
 })
 
-test("env variable takes precedence and config merges options for openai", async () => {
-  await using tmp = await project({
-    $schema: "https://opencode.ai/config.json",
-    provider: {
-      openai: {
-        options: {
-          timeout: 60000,
-          chunkTimeout: 15000,
-        },
-      },
+test("env variable takes precedence, config merges options", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+          provider: {
+            anthropic: {
+              options: {
+                timeout: 60000,
+                chunkTimeout: 15000,
+              },
+            },
+          },
+        }),
+      )
     },
   })
   await Instance.provide({
     directory: tmp.path,
     init: async () => {
-      Env.set("OPENAI_API_KEY", "env-api-key")
+      Env.set("ANTHROPIC_API_KEY", "env-api-key")
     },
     fn: async () => {
       const providers = await Provider.list()
-      expect(providers[ProviderID.openai]).toBeDefined()
-      expect(providers[ProviderID.openai].options.timeout).toBe(60000)
-      expect(providers[ProviderID.openai].options.chunkTimeout).toBe(15000)
+      expect(providers[ProviderID.anthropic]).toBeDefined()
+      // Config options should be merged
+      expect(providers[ProviderID.anthropic].options.timeout).toBe(60000)
+      expect(providers[ProviderID.anthropic].options.chunkTimeout).toBe(15000)
     },
   })
 })
 
-test("getModel returns non-gpt openai model", async () => {
-  await using tmp = await project()
+test("getModel returns model for valid provider/model", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+        }),
+      )
+    },
+  })
   await Instance.provide({
     directory: tmp.path,
     init: async () => {
-      Env.set("OPENAI_API_KEY", "test-api-key")
+      Env.set("ANTHROPIC_API_KEY", "test-api-key")
     },
     fn: async () => {
-      const model = await Provider.getModel(ProviderID.make("openai"), ModelID.make("o3-mini"))
-      expect(String(model.providerID)).toBe("openai")
-      expect(String(model.id)).toBe("o3-mini")
+      const model = await Provider.getModel(ProviderID.anthropic, ModelID.make("claude-sonnet-4-20250514"))
+      expect(model).toBeDefined()
+      expect(String(model.providerID)).toBe("anthropic")
+      expect(String(model.id)).toBe("claude-sonnet-4-20250514")
+      const language = await Provider.getLanguage(model)
+      expect(language).toBeDefined()
     },
   })
 })
 
-test("github-copilot filters grok models", async () => {
-  await using tmp = await project()
+test("getModel throws ModelNotFoundError for invalid model", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+        }),
+      )
+    },
+  })
   await Instance.provide({
     directory: tmp.path,
     init: async () => {
-      await Auth.set("github-copilot", {
-        type: "oauth",
-        access: "access",
-        refresh: "refresh",
-        expires: Date.now() + 60_000,
-      })
+      Env.set("ANTHROPIC_API_KEY", "test-api-key")
     },
     fn: async () => {
-      const providers = await Provider.list()
-      expect(providers[ProviderID.make("github-copilot")]).toBeDefined()
-      expect(providers[ProviderID.make("github-copilot")].models["grok-code-fast-1"]).toBeUndefined()
-      expect(providers[ProviderID.make("github-copilot")].models["gpt-5.2-codex"]).toBeDefined()
+      expect(Provider.getModel(ProviderID.anthropic, ModelID.make("nonexistent-model"))).rejects.toThrow()
     },
   })
 })
 
-test("getModel throws for blocked provider", async () => {
-  const saved = process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
-  delete process.env["OPENCODE_ALLOW_ALL_PROVIDERS"]
-  try {
-    await using tmp = await project()
-    await Instance.provide({
-      directory: tmp.path,
-      init: async () => {
-        Env.set("ANTHROPIC_API_KEY", "test-api-key")
-      },
-      fn: async () => {
-        expect(
-          Provider.getModel(ProviderID.make("anthropic"), ModelID.make("claude-sonnet-4-20250514")),
-        ).rejects.toThrow()
-      },
-    })
-  } finally {
-    if (saved !== undefined) process.env["OPENCODE_ALLOW_ALL_PROVIDERS"] = saved
-  }
+test("getModel throws ModelNotFoundError for invalid provider", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+        }),
+      )
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      expect(Provider.getModel(ProviderID.make("nonexistent-provider"), ModelID.make("some-model"))).rejects.toThrow()
+    },
+  })
 })
 
 test("parseModel correctly parses provider/model string", () => {
-  const result = Provider.parseModel("openai/gpt-5.2")
-  expect(String(result.providerID)).toBe("openai")
-  expect(String(result.modelID)).toBe("gpt-5.2")
+  const result = Provider.parseModel("anthropic/claude-sonnet-4")
+  expect(String(result.providerID)).toBe("anthropic")
+  expect(String(result.modelID)).toBe("claude-sonnet-4")
 })
 
 test("parseModel handles model IDs with slashes", () => {
@@ -418,20 +364,51 @@ test("parseModel handles model IDs with slashes", () => {
   expect(String(result.modelID)).toBe("anthropic/claude-3-opus")
 })
 
-test("defaultModel respects config model setting", async () => {
-  await using tmp = await project({
-    $schema: "https://opencode.ai/config.json",
-    model: "openai/gpt-5.2",
+test("defaultModel returns first available model when no config set", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+        }),
+      )
+    },
   })
   await Instance.provide({
     directory: tmp.path,
     init: async () => {
-      Env.set("OPENAI_API_KEY", "test-api-key")
+      Env.set("ANTHROPIC_API_KEY", "test-api-key")
     },
     fn: async () => {
       const model = await Provider.defaultModel()
-      expect(String(model.providerID)).toBe("openai")
-      expect(String(model.modelID)).toBe("gpt-5.2")
+      expect(model.providerID).toBeDefined()
+      expect(model.modelID).toBeDefined()
+    },
+  })
+})
+
+test("defaultModel respects config model setting", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "opencode.json"),
+        JSON.stringify({
+          $schema: "https://opencode.ai/config.json",
+          model: "anthropic/claude-sonnet-4-20250514",
+        }),
+      )
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    init: async () => {
+      Env.set("ANTHROPIC_API_KEY", "test-api-key")
+    },
+    fn: async () => {
+      const model = await Provider.defaultModel()
+      expect(String(model.providerID)).toBe("anthropic")
+      expect(String(model.modelID)).toBe("claude-sonnet-4-20250514")
     },
   })
 })

@@ -15,6 +15,7 @@ import { SkillTool } from "./skill"
 import type { Agent } from "../agent/agent"
 import { Tool } from "./tool"
 import { Config } from "../config/config"
+import path from "path"
 import { type ToolContext as PluginToolContext, type ToolDefinition } from "@opencode-ai/plugin"
 import z from "zod"
 import { Plugin } from "../plugin"
@@ -27,12 +28,10 @@ import { LspTool } from "./lsp"
 import { Truncate } from "./truncate"
 import { ApplyPatchTool } from "./apply_patch"
 import { Glob } from "../util/glob"
-import { Bus } from "../bus"
-import { TuiEvent } from "@/cli/cmd/tui/event"
-import path from "path"
+import { pathToFileURL } from "url"
 import { Effect, Layer, ServiceMap } from "effect"
 import { InstanceState } from "@/effect/instance-state"
-import { makeRunPromise } from "@/effect/run-service"
+import { makeRuntime } from "@/effect/run-service"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -47,7 +46,6 @@ export namespace ToolRegistry {
     readonly tools: (
       model: { providerID: ProviderID; modelID: ModelID },
       agent?: Agent.Info,
-      light?: boolean,
     ) => Effect.Effect<(Awaited<ReturnType<Tool.Info["init"]>> & { id: string })[]>
   }
 
@@ -85,23 +83,18 @@ export namespace ToolRegistry {
           }
 
           yield* Effect.promise(async () => {
-            // Custom tools are disabled in this fork
             const matches = await Config.directories().then((dirs) =>
               dirs.flatMap((dir) =>
                 Glob.scanSync("{tool,tools}/*.{js,ts}", { cwd: dir, absolute: true, dot: true, symlink: true }),
               ),
             )
-            if (matches.length) {
-              log.warn("ignoring custom tools", { tools: matches })
-              const shown = matches.slice(0, 3)
-              const rest = matches.length - shown.length
-              const paths = shown.map((m) => "  " + path.relative(ctx.directory, m)).join("\n")
-              const suffix = rest > 0 ? `\n(and ${rest} more)` : ""
-              Bus.publish(TuiEvent.ToastShow, {
-                title: "Custom tools ignored",
-                message: `Custom tools are disabled in this build:\n${paths}${suffix}`,
-                variant: "warning",
-              })
+            if (matches.length) await Config.waitForDependencies()
+            for (const match of matches) {
+              const namespace = path.basename(match, path.extname(match))
+              const mod = await import(process.platform === "win32" ? match : pathToFileURL(match).href)
+              for (const [id, def] of Object.entries<ToolDefinition>(mod)) {
+                custom.push(fromPlugin(id === "default" ? namespace : `${namespace}_${id}`, def))
+              }
             }
 
             const plugins = await Plugin.list()
@@ -162,7 +155,6 @@ export namespace ToolRegistry {
       const tools = Effect.fn("ToolRegistry.tools")(function* (
         model: { providerID: ProviderID; modelID: ModelID },
         agent?: Agent.Info,
-        light?: boolean,
       ) {
         const state = yield* InstanceState.get(cache)
         const allTools = yield* Effect.promise(() => all(state.custom))
@@ -185,7 +177,7 @@ export namespace ToolRegistry {
               })
               .map(async (tool) => {
                 using _ = log.time(tool.id)
-                const next = await tool.init({ agent, light })
+                const next = await tool.init({ agent })
                 const output = {
                   description: next.description,
                   parameters: next.parameters,
@@ -206,7 +198,7 @@ export namespace ToolRegistry {
     }),
   )
 
-  const runPromise = makeRunPromise(Service, layer)
+  const { runPromise } = makeRuntime(Service, layer)
 
   export async function register(tool: Tool.Info) {
     return runPromise((svc) => svc.register(tool))
@@ -222,8 +214,7 @@ export namespace ToolRegistry {
       modelID: ModelID
     },
     agent?: Agent.Info,
-    light?: boolean,
   ) {
-    return runPromise((svc) => svc.tools(model, agent, light))
+    return runPromise((svc) => svc.tools(model, agent))
   }
 }

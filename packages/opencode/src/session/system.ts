@@ -5,23 +5,20 @@ import { Instance } from "../project/instance"
 import PROMPT_ANTHROPIC from "./prompt/anthropic.txt"
 import PROMPT_DEFAULT from "./prompt/default.txt"
 import PROMPT_BEAST from "./prompt/beast.txt"
-import PROMPT_BEAST_LIGHT from "./prompt/beast-light.txt"
 import PROMPT_GEMINI from "./prompt/gemini.txt"
 
 import PROMPT_CODEX from "./prompt/codex.txt"
-import PROMPT_CODEX_LIGHT from "./prompt/codex-light.txt"
 import PROMPT_TRINITY from "./prompt/trinity.txt"
 import type { Provider } from "@/provider/provider"
 import type { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
 import { Skill } from "@/skill"
-import { Config } from "@/config/config"
 
 export namespace SystemPrompt {
-  export function provider(model: Provider.Model, light?: boolean) {
+  export function provider(model: Provider.Model) {
     if (model.api.id.includes("gpt-4") || model.api.id.includes("o1") || model.api.id.includes("o3"))
-      return [light ? PROMPT_BEAST_LIGHT : PROMPT_BEAST]
-    if (model.api.id.includes("gpt")) return [light ? PROMPT_CODEX_LIGHT : PROMPT_CODEX]
+      return [PROMPT_BEAST]
+    if (model.api.id.includes("gpt")) return [PROMPT_CODEX]
     if (model.api.id.includes("gemini-")) return [PROMPT_GEMINI]
     if (model.api.id.includes("claude")) return [PROMPT_ANTHROPIC]
     if (model.api.id.toLowerCase().includes("trinity")) return [PROMPT_TRINITY]
@@ -30,9 +27,7 @@ export namespace SystemPrompt {
 
   export async function environment(model: Provider.Model) {
     const project = Instance.project
-    const cfg = await Config.get()
-    const sandbox = cfg.sandbox?.enabled === false ? undefined : cfg.sandbox
-    const result = [
+    return [
       [
         `You are powered by the model named ${model.api.id}. The exact model ID is ${model.providerID}/${model.api.id}`,
         `Here is some useful information about the environment you are running in:`,
@@ -55,16 +50,6 @@ export namespace SystemPrompt {
         `</directories>`,
       ].join("\n"),
     ]
-    if (sandbox) {
-      result.push(
-        [
-          `<sandbox>`,
-          `A sandboxed execution environment is active. Common development tools (bun, node, npm, git, gh, etc.) are available in the sandbox. Always try running commands in the sandbox first. Only set \`unsandboxed\` to true if a command fails due to sandbox restrictions — never preemptively. Requires user approval.`,
-          `</sandbox>`,
-        ].join("\n"),
-      )
-    }
-    return result
   }
 
   export async function skills(agent: Agent.Info) {

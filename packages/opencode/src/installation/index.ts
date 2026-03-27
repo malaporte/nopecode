@@ -1,7 +1,8 @@
-import { NodeChildProcessSpawner, NodeFileSystem, NodePath } from "@effect/platform-node"
+import { NodeFileSystem, NodePath } from "@effect/platform-node"
 import { Effect, Layer, Schema, ServiceMap, Stream } from "effect"
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
-import { makeRunPromise } from "@/effect/run-service"
+import * as CrossSpawnSpawner from "@/effect/cross-spawn-spawner"
+import { makeRuntime } from "@/effect/run-service"
 import { withTransientReadRetry } from "@/util/effect-http-client"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import path from "path"
@@ -141,8 +142,8 @@ export namespace Installation {
         )
 
         const getBrewFormula = Effect.fnUntraced(function* () {
-          const forkFormula = yield* text(["brew", "list", "--formula", "malaporte/nopecode/opencode"])
-          if (forkFormula.includes("opencode")) return "malaporte/nopecode/opencode"
+          const tapFormula = yield* text(["brew", "list", "--formula", "anomalyco/tap/opencode"])
+          if (tapFormula.includes("opencode")) return "anomalyco/tap/opencode"
           const coreFormula = yield* text(["brew", "list", "--formula", "opencode"])
           if (coreFormula.includes("opencode")) return "opencode"
           return "opencode"
@@ -150,9 +151,7 @@ export namespace Installation {
 
         const upgradeCurl = Effect.fnUntraced(
           function* (target: string) {
-            const response = yield* httpOk.execute(
-              HttpClientRequest.get(`https://raw.githubusercontent.com/malaporte/nopecode/v${target}/install`),
-            )
+            const response = yield* httpOk.execute(HttpClientRequest.get("https://opencode.ai/install"))
             const body = yield* response.text
             const bodyBytes = new TextEncoder().encode(body)
             const proc = ChildProcess.make("bash", [], {
@@ -198,7 +197,7 @@ export namespace Installation {
           for (const check of checks) {
             const output = yield* check.command()
             const installedName =
-              check.name === "brew" || check.name === "choco" || check.name === "scoop" ? "opencode" : "opencode"
+              check.name === "brew" || check.name === "choco" || check.name === "scoop" ? "opencode" : "opencode-ai"
             if (output.includes(installedName)) {
               return check.name
             }
@@ -232,7 +231,7 @@ export namespace Installation {
             const registry = reg.endsWith("/") ? reg.slice(0, -1) : reg
             const channel = CHANNEL
             const response = yield* httpOk.execute(
-              HttpClientRequest.get(`${registry}/opencode/${channel}`).pipe(HttpClientRequest.acceptJson),
+              HttpClientRequest.get(`${registry}/opencode-ai/${channel}`).pipe(HttpClientRequest.acceptJson),
             )
             const data = yield* HttpClientResponse.schemaBodyJson(NpmPackage)(response)
             return data.version
@@ -259,7 +258,7 @@ export namespace Installation {
           }
 
           const response = yield* httpOk.execute(
-            HttpClientRequest.get("https://api.github.com/repos/malaporte/nopecode/releases/latest").pipe(
+            HttpClientRequest.get("https://api.github.com/repos/anomalyco/opencode/releases/latest").pipe(
               HttpClientRequest.acceptJson,
             ),
           )
@@ -274,24 +273,24 @@ export namespace Installation {
               result = yield* upgradeCurl(target)
               break
             case "npm":
-              result = yield* run(["npm", "install", "-g", `opencode@${target}`])
+              result = yield* run(["npm", "install", "-g", `opencode-ai@${target}`])
               break
             case "pnpm":
-              result = yield* run(["pnpm", "install", "-g", `opencode@${target}`])
+              result = yield* run(["pnpm", "install", "-g", `opencode-ai@${target}`])
               break
             case "bun":
-              result = yield* run(["bun", "install", "-g", `opencode@${target}`])
+              result = yield* run(["bun", "install", "-g", `opencode-ai@${target}`])
               break
             case "brew": {
               const formula = yield* getBrewFormula()
               const env = { HOMEBREW_NO_AUTO_UPDATE: "1" }
               if (formula.includes("/")) {
-                const tap = yield* run(["brew", "tap", "malaporte/nopecode"], { env })
+                const tap = yield* run(["brew", "tap", "anomalyco/tap"], { env })
                 if (tap.code !== 0) {
                   result = tap
                   break
                 }
-                const repo = yield* text(["brew", "--repo", "malaporte/nopecode"])
+                const repo = yield* text(["brew", "--repo", "anomalyco/tap"])
                 const dir = repo.trim()
                 if (dir) {
                   const pull = yield* run(["git", "pull", "--ff-only"], { cwd: dir, env })
@@ -342,12 +341,12 @@ export namespace Installation {
 
   export const defaultLayer = layer.pipe(
     Layer.provide(FetchHttpClient.layer),
-    Layer.provide(NodeChildProcessSpawner.layer),
+    Layer.provide(CrossSpawnSpawner.layer),
     Layer.provide(NodeFileSystem.layer),
     Layer.provide(NodePath.layer),
   )
 
-  const runPromise = makeRunPromise(Service, defaultLayer)
+  const { runPromise } = makeRuntime(Service, defaultLayer)
 
   export async function info(): Promise<Info> {
     return runPromise((svc) => svc.info())

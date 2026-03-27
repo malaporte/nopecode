@@ -1,4 +1,4 @@
-import type { ProviderAuthAuthorization } from "@opencode-ai/sdk/v2/client"
+import type { ProviderAuthAuthorization, ProviderAuthMethod } from "@opencode-ai/sdk/v2/client"
 import { Button } from "@opencode-ai/ui/button"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { Dialog } from "@opencode-ai/ui/dialog"
@@ -9,7 +9,7 @@ import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { TextField } from "@opencode-ai/ui/text-field"
 import { showToast } from "@opencode-ai/ui/toast"
-import { createMemo, Match, onCleanup, onMount, Switch } from "solid-js"
+import { createEffect, createMemo, createResource, Match, onCleanup, onMount, Switch } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import { Link } from "@/components/link"
 import { useGlobalSDK } from "@/context/global-sdk"
@@ -34,21 +34,30 @@ export function DialogConnectProvider(props: { provider: string }) {
   })
 
   const provider = createMemo(() => globalSync.data.provider.all.find((x) => x.id === props.provider)!)
-  const methods = createMemo(
-    () =>
-      globalSync.data.provider_auth[props.provider] ?? [
-        {
-          type: "api",
-          label: language.t("provider.connect.method.apiKey"),
-        },
-      ],
+  const fallback = createMemo<ProviderAuthMethod[]>(() => [
+    {
+      type: "api" as const,
+      label: language.t("provider.connect.method.apiKey"),
+    },
+  ])
+  const [auth] = createResource(
+    () => props.provider,
+    async () => {
+      const cached = globalSync.data.provider_auth[props.provider]
+      if (cached) return cached
+      const res = await globalSDK.client.provider.auth()
+      if (!alive.value) return fallback()
+      globalSync.set("provider_auth", res.data ?? {})
+      return res.data?.[props.provider] ?? fallback()
+    },
   )
+  const loading = createMemo(() => auth.loading && !globalSync.data.provider_auth[props.provider])
+  const methods = createMemo(() => auth.latest ?? globalSync.data.provider_auth[props.provider] ?? fallback())
   const [store, setStore] = createStore({
     methodIndex: undefined as undefined | number,
     authorization: undefined as undefined | ProviderAuthAuthorization,
     state: "pending" as undefined | "pending" | "complete" | "error" | "prompt",
     error: undefined as string | undefined,
-    inputs: {} as Record<string, string>,
   })
 
   type Action =
@@ -58,7 +67,6 @@ export function DialogConnectProvider(props: { provider: string }) {
     | { type: "auth.pending" }
     | { type: "auth.complete"; authorization: ProviderAuthAuthorization }
     | { type: "auth.error"; error: string }
-    | { type: "input.set"; key: string; value: string }
 
   function dispatch(action: Action) {
     setStore(
@@ -68,7 +76,6 @@ export function DialogConnectProvider(props: { provider: string }) {
           draft.authorization = undefined
           draft.state = undefined
           draft.error = undefined
-          draft.inputs = {}
           return
         }
         if (action.type === "method.reset") {
@@ -76,7 +83,6 @@ export function DialogConnectProvider(props: { provider: string }) {
           draft.authorization = undefined
           draft.state = undefined
           draft.error = undefined
-          draft.inputs = {}
           return
         }
         if (action.type === "auth.prompt") {
@@ -93,10 +99,6 @@ export function DialogConnectProvider(props: { provider: string }) {
           draft.state = "complete"
           draft.authorization = action.authorization
           draft.error = undefined
-          return
-        }
-        if (action.type === "input.set") {
-          draft.inputs[action.key] = action.value
           return
         }
         draft.state = "error"
@@ -185,7 +187,11 @@ export function DialogConnectProvider(props: { provider: string }) {
       index: 0,
     })
 
-    const prompts = createMemo(() => method()?.prompts ?? [])
+    const prompts = createMemo<NonNullable<ProviderAuthMethod["prompts"]>>(() => {
+      const value = method()
+      if (value?.type !== "oauth") return []
+      return value.prompts ?? []
+    })
     const matches = (prompt: NonNullable<ReturnType<typeof prompts>[number]>, value: Record<string, string>) => {
       if (!prompt.when) return true
       const actual = value[prompt.when.key]
@@ -304,8 +310,12 @@ export function DialogConnectProvider(props: { provider: string }) {
     listRef?.onKeyDown(e)
   }
 
-  onMount(() => {
+  let auto = false
+  createEffect(() => {
+    if (auto) return
+    if (loading()) return
     if (methods().length === 1) {
+      auto = true
       selectMethod(0)
     }
   })
@@ -581,6 +591,14 @@ export function DialogConnectProvider(props: { provider: string }) {
         <div class="px-2.5 pb-10 flex flex-col gap-6">
           <div onKeyDown={handleKey} tabIndex={0} autofocus={store.methodIndex === undefined ? true : undefined}>
             <Switch>
+              <Match when={loading()}>
+                <div class="text-14-regular text-text-base">
+                  <div class="flex items-center gap-x-2">
+                    <Spinner />
+                    <span>{language.t("provider.connect.status.inProgress")}</span>
+                  </div>
+                </div>
+              </Match>
               <Match when={store.methodIndex === undefined}>
                 <MethodSelection />
               </Match>

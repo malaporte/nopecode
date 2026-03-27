@@ -46,6 +46,7 @@ import type {
   GlobalDisposeResponses,
   GlobalEventResponses,
   GlobalHealthResponses,
+  GlobalSyncEventSubscribeResponses,
   GlobalUpgradeErrors,
   GlobalUpgradeResponses,
   InstanceDisposeResponses,
@@ -230,6 +231,20 @@ class HeyApiRegistry<T> {
   }
 }
 
+export class SyncEvent extends HeyApiClient {
+  /**
+   * Subscribe to global sync events
+   *
+   * Get global sync events
+   */
+  public subscribe<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).sse.get<GlobalSyncEventSubscribeResponses, unknown, ThrowOnError>({
+      url: "/global/sync-event",
+      ...options,
+    })
+  }
+}
+
 export class Config extends HeyApiClient {
   /**
    * Get global configuration
@@ -327,6 +342,11 @@ export class Global extends HeyApiClient {
         ...params.headers,
       },
     })
+  }
+
+  private _syncEvent?: SyncEvent
+  get syncEvent(): SyncEvent {
+    return (this._syncEvent ??= new SyncEvent({ client: this.client }))
   }
 
   private _config?: Config
@@ -1320,9 +1340,6 @@ export class Session2 extends HeyApiClient {
       workspace?: string
       parentID?: string
       title?: string
-      light?: {
-        enabled?: boolean
-      }
       permission?: PermissionRuleset
       workspaceID?: string
     },
@@ -1337,7 +1354,6 @@ export class Session2 extends HeyApiClient {
             { in: "query", key: "workspace" },
             { in: "body", key: "parentID" },
             { in: "body", key: "title" },
-            { in: "body", key: "light" },
             { in: "body", key: "permission" },
             { in: "body", key: "workspaceID" },
           ],
@@ -1461,9 +1477,6 @@ export class Session2 extends HeyApiClient {
       directory?: string
       workspace?: string
       title?: string
-      light?: {
-        enabled?: boolean
-      }
       time?: {
         archived?: number
       }
@@ -1479,7 +1492,6 @@ export class Session2 extends HeyApiClient {
             { in: "query", key: "directory" },
             { in: "query", key: "workspace" },
             { in: "body", key: "title" },
-            { in: "body", key: "light" },
             { in: "body", key: "time" },
           ],
         },
