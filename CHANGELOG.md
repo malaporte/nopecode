@@ -1,3 +1,10 @@
+## [1000.18.1](https://github.com/malaporte/nopecode/compare/v1000.18.0...v1000.18.1) (2026-03-27)
+
+
+### Bug Fixes
+
+* restore fork-specific auto-update behavior after upstream merge ([#18](https://github.com/malaporte/nopecode/issues/18)) ([c8db3e2](https://github.com/malaporte/nopecode/commit/c8db3e2843b744015ac618341ee5d191be57c8e5))
+
 # [1000.18.0](https://github.com/malaporte/nopecode/compare/v1000.17.2...v1000.18.0) (2026-03-27)
 
 
