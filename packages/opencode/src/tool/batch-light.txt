@@ -1,6 +1,0 @@
-Run multiple independent tool calls in parallel.
-
-- Use this only when the calls do not depend on each other.
-- Each item needs a `tool` name and `parameters` object.
-- Do not batch tools that require ordered execution.
-- If the work is sequential, call tools normally instead.

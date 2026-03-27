@@ -7,7 +7,6 @@ import { Tool } from "./tool"
 import { LSP } from "../lsp"
 import { FileTime } from "../file/time"
 import DESCRIPTION from "./read.txt"
-import LIGHT from "./read-light.txt"
 import { Instance } from "../project/instance"
 import { assertExternalDirectory } from "./external-directory"
 import { InstructionPrompt } from "../session/instruction"
@@ -24,8 +23,8 @@ const parameters = z.object({
   limit: z.coerce.number().describe("The maximum number of lines to read (defaults to 2000)").optional(),
 })
 
-export const ReadTool = Tool.define("read", async (ctx) => ({
-  description: ctx?.light ? LIGHT : DESCRIPTION,
+export const ReadTool = Tool.define("read", async (_ctx) => ({
+  description: DESCRIPTION,
   parameters,
   async execute(params: z.infer<typeof parameters>, ctx) {
     if (params.offset !== undefined && params.offset < 1) {

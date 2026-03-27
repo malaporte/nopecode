@@ -3,7 +3,6 @@ import { spawn } from "child_process"
 import { Tool } from "./tool"
 import path from "path"
 import DESCRIPTION from "./bash.txt"
-import LIGHT from "./bash-light.txt"
 import { Log } from "../util/log"
 import { Instance } from "../project/instance"
 import { lazy } from "@/util/lazy"
@@ -85,8 +84,7 @@ const parser = lazy(async () => {
 export const BashTool = Tool.define("bash", async (ctx) => {
   const shell = Shell.acceptable()
   log.info("bash tool using shell", { shell })
-  const description = (ctx?.light ? LIGHT : DESCRIPTION)
-    .replaceAll("${directory}", Instance.directory)
+  const description = DESCRIPTION.replaceAll("${directory}", Instance.directory)
     .replaceAll("${maxLines}", String(Truncate.MAX_LINES))
     .replaceAll("${maxBytes}", String(Truncate.MAX_BYTES))
   const parameters = schema()

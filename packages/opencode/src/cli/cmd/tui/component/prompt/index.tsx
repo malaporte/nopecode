@@ -81,37 +81,6 @@ export function Prompt(props: PromptProps) {
   const kv = useKV()
   const sandbox = createMemo(() => sync.data.config.sandbox?.enabled !== false)
   const [sandboxHover, setSandboxHover] = createSignal(false)
-  const [pending, setPending] = createSignal(false)
-  const light = createMemo(() => {
-    if (!props.sessionID) return pending()
-    return sync.session.get(props.sessionID)?.light?.enabled === true
-  })
-  const [lightHover, setLightHover] = createSignal(false)
-
-  async function toggleLight() {
-    const next = !light()
-    if (!props.sessionID) {
-      setPending(next)
-      toast.show({
-        message: next ? "Light mode enabled for new session" : "Light mode disabled for new session",
-        variant: "info",
-      })
-      return
-    }
-    const result = await sdk.client.session.update({
-      sessionID: props.sessionID,
-      light: { enabled: next },
-    })
-    if (!result.data) {
-      toast.show({ message: "Failed to update light setting", variant: "error" })
-      return
-    }
-    toast.show({
-      message: next ? "Light mode enabled" : "Light mode disabled",
-      variant: "info",
-    })
-  }
-
   function promptModelWarning() {
     toast.show({
       variant: "warning",
@@ -591,7 +560,6 @@ export function Prompt(props: PromptProps) {
     let sessionID = props.sessionID
     if (sessionID == null) {
       const res = await sdk.client.session.create({
-        light: light() ? { enabled: true } : undefined,
         workspaceID: props.workspaceID,
       })
 
@@ -607,7 +575,6 @@ export function Prompt(props: PromptProps) {
       }
 
       sessionID = res.data.id
-      setPending(false)
     }
 
     const messageID = MessageID.ascending()
@@ -1217,14 +1184,6 @@ export function Prompt(props: PromptProps) {
                 onMouseUp={() => command.trigger("app.toggle.sandbox")}
               >
                 {sandbox() ? "◆ Sandbox on" : "◇ Sandbox off"}
-              </text>
-              <text
-                fg={lightHover() ? theme.text : light() ? theme.success : theme.textMuted}
-                onMouseOver={() => setLightHover(true)}
-                onMouseOut={() => setLightHover(false)}
-                onMouseUp={() => toggleLight()}
-              >
-                {light() ? "◆ Light on" : "◇ Light off"}
               </text>
             </box>
           </Show>

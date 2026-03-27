@@ -9,7 +9,6 @@ import { Tool } from "./tool"
 import { LSP } from "../lsp"
 import { createTwoFilesPatch, diffLines } from "diff"
 import DESCRIPTION from "./edit.txt"
-import LIGHT from "./edit-light.txt"
 import { File } from "../file"
 import { FileWatcher } from "../file/watcher"
 import { Bus } from "../bus"
@@ -41,8 +40,8 @@ function convertToLineEnding(text: string, ending: "\n" | "\r\n"): string {
   return text.replaceAll("\n", "\r\n")
 }
 
-export const EditTool = Tool.define("edit", async (ctx) => ({
-  description: ctx?.light ? LIGHT : DESCRIPTION,
+export const EditTool = Tool.define("edit", async (_ctx) => ({
+  description: DESCRIPTION,
   parameters,
   async execute(params: z.infer<typeof parameters>, ctx) {
     if (!params.filePath) {

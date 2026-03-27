@@ -2,7 +2,6 @@ import z from "zod"
 import { Tool } from "./tool"
 import { ProviderID, ModelID } from "../provider/schema"
 import DESCRIPTION from "./batch.txt"
-import LIGHT from "./batch-light.txt"
 
 const DISALLOWED = new Set(["batch"])
 const FILTERED_FROM_SUGGESTIONS = new Set(["invalid", "patch", ...DISALLOWED])
@@ -20,7 +19,7 @@ const parameters = z.object({
 
 export const BatchTool = Tool.define("batch", async (ctx) => {
   return {
-    description: ctx?.light ? LIGHT : DESCRIPTION,
+    description: DESCRIPTION,
     parameters,
     formatValidationError(error) {
       const formattedErrors = error.issues

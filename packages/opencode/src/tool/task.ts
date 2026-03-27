@@ -1,6 +1,5 @@
 import { Tool } from "./tool"
 import DESCRIPTION from "./task.txt"
-import LIGHT from "./task-light.txt"
 import z from "zod"
 import { Session } from "../session"
 import { SessionID, MessageID } from "../session/schema"
@@ -36,7 +35,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
     : agents
   const list = accessibleAgents.toSorted((a, b) => a.name.localeCompare(b.name))
 
-  const description = (ctx?.light ? LIGHT : DESCRIPTION).replace(
+  const description = DESCRIPTION.replace(
     "{agents}",
     list
       .map((a) => `- ${a.name}: ${a.description ?? "This subagent should only be called manually by the user."}`)
