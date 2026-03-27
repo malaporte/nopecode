@@ -63,7 +63,7 @@ Use this skill when working on upstream integration for this repository.
 
 ## Output
 
-- Leave the repo on a PR-ready branch when possible.
+- Merge the incoming commits from upstream directly into main, do not squash.
 - Report:
   - upstream release tag merged (and its commit range from the previous fork base)
   - conflicts resolved
