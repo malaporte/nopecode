@@ -142,8 +142,9 @@ export namespace Installation {
         )
 
         const getBrewFormula = Effect.fnUntraced(function* () {
-          const tapFormula = yield* text(["brew", "list", "--formula", "anomalyco/tap/opencode"])
-          if (tapFormula.includes("opencode")) return "anomalyco/tap/opencode"
+          // FORK: check malaporte/nopecode tap first — upstream uses anomalyco/tap
+          const forkFormula = yield* text(["brew", "list", "--formula", "malaporte/nopecode/opencode"])
+          if (forkFormula.includes("opencode")) return "malaporte/nopecode/opencode"
           const coreFormula = yield* text(["brew", "list", "--formula", "opencode"])
           if (coreFormula.includes("opencode")) return "opencode"
           return "opencode"
@@ -151,7 +152,10 @@ export namespace Installation {
 
         const upgradeCurl = Effect.fnUntraced(
           function* (target: string) {
-            const response = yield* httpOk.execute(HttpClientRequest.get("https://opencode.ai/install"))
+            // FORK: fetch the fork's versioned install script — upstream uses https://opencode.ai/install
+            const response = yield* httpOk.execute(
+              HttpClientRequest.get(`https://raw.githubusercontent.com/malaporte/nopecode/v${target}/install`),
+            )
             const body = yield* response.text
             const bodyBytes = new TextEncoder().encode(body)
             const proc = ChildProcess.make("bash", [], {
@@ -230,6 +234,7 @@ export namespace Installation {
             const reg = r || "https://registry.npmjs.org"
             const registry = reg.endsWith("/") ? reg.slice(0, -1) : reg
             const channel = CHANNEL
+            // FORK: this fork is not published to npm; this path should not be reached in practice
             const response = yield* httpOk.execute(
               HttpClientRequest.get(`${registry}/opencode-ai/${channel}`).pipe(HttpClientRequest.acceptJson),
             )
@@ -257,8 +262,9 @@ export namespace Installation {
             return data.version
           }
 
+          // FORK: check malaporte/nopecode releases — upstream checks anomalyco/opencode
           const response = yield* httpOk.execute(
-            HttpClientRequest.get("https://api.github.com/repos/anomalyco/opencode/releases/latest").pipe(
+            HttpClientRequest.get("https://api.github.com/repos/malaporte/nopecode/releases/latest").pipe(
               HttpClientRequest.acceptJson,
             ),
           )
@@ -284,13 +290,14 @@ export namespace Installation {
             case "brew": {
               const formula = yield* getBrewFormula()
               const env = { HOMEBREW_NO_AUTO_UPDATE: "1" }
+              // FORK: use malaporte/nopecode tap — upstream uses anomalyco/tap
               if (formula.includes("/")) {
-                const tap = yield* run(["brew", "tap", "anomalyco/tap"], { env })
+                const tap = yield* run(["brew", "tap", "malaporte/nopecode"], { env })
                 if (tap.code !== 0) {
                   result = tap
                   break
                 }
-                const repo = yield* text(["brew", "--repo", "anomalyco/tap"])
+                const repo = yield* text(["brew", "--repo", "malaporte/nopecode"])
                 const dir = repo.trim()
                 if (dir) {
                   const pull = yield* run(["git", "pull", "--ff-only"], { cwd: dir, env })
