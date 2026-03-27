@@ -3,7 +3,6 @@ import { Tool } from "./tool"
 import path from "path"
 import { LSP } from "../lsp"
 import DESCRIPTION from "./lsp.txt"
-import LIGHT from "./lsp-light.txt"
 import { Instance } from "../project/instance"
 import { pathToFileURL } from "url"
 import { assertExternalDirectory } from "./external-directory"
@@ -28,8 +27,8 @@ const parameters = z.object({
   character: z.number().int().min(1).describe("The character offset (1-based, as shown in editors)"),
 })
 
-export const LspTool = Tool.define("lsp", async (ctx) => ({
-  description: ctx?.light ? LIGHT : DESCRIPTION,
+export const LspTool = Tool.define("lsp", async (_ctx) => ({
+  description: DESCRIPTION,
   parameters,
   execute: async (args: z.infer<typeof parameters>, ctx) => {
     const file = path.isAbsolute(args.filePath) ? args.filePath : path.join(Instance.directory, args.filePath)

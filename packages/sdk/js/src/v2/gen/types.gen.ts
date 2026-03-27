@@ -937,9 +937,6 @@ export type Session = {
     snapshot?: string
     diff?: string
   }
-  light?: {
-    enabled?: boolean
-  }
 }
 
 export type EventSessionCreated = {
@@ -1468,6 +1465,13 @@ export type Config = {
    */
   autoupdate?: boolean | "notify"
   /**
+   * Built-in OS notifications for session completion and errors
+   */
+  notify?: {
+    enabled?: boolean
+    sound?: boolean
+  }
+  /**
    * Disable providers that are loaded automatically
    */
   disabled_providers?: Array<string>
@@ -1589,6 +1593,27 @@ export type Config = {
      */
     reserved?: number
   }
+  /**
+   * Route bash tool commands through a sandboxed container via the `pippin run` CLI
+   */
+  sandbox?: {
+    /**
+     * Enable sandboxed command execution via `pippin run`
+     */
+    enabled?: boolean
+    /**
+     * Path to the pippin binary used for `pippin run`. Defaults to 'pippin' (resolved from PATH)
+     */
+    command?: string
+    /**
+     * PIPPIN_HOST override
+     */
+    host?: string
+    /**
+     * PIPPIN_PORT override
+     */
+    port?: number
+  }
   experimental?: {
     disable_paste_summary?: boolean
     /**
@@ -1611,15 +1636,6 @@ export type Config = {
      * Timeout in milliseconds for model context protocol (MCP) requests
      */
     mcp_timeout?: number
-  }
-  /**
-   * Route bash tool commands through a sandboxed container via the `pippin run` CLI
-   */
-  sandbox?: {
-    /**
-     * Enable sandboxed command execution via `pippin run`
-     */
-    enabled?: boolean
   }
 }
 
@@ -2967,9 +2983,6 @@ export type SessionCreateData = {
   body?: {
     parentID?: string
     title?: string
-    light?: {
-      enabled?: boolean
-    }
     permission?: PermissionRuleset
     workspaceID?: string
   }
@@ -3100,9 +3113,6 @@ export type SessionGetResponse = SessionGetResponses[keyof SessionGetResponses]
 export type SessionUpdateData = {
   body?: {
     title?: string
-    light?: {
-      enabled?: boolean
-    }
     time?: {
       archived?: number
     }

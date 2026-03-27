@@ -270,7 +270,6 @@ export const SessionRoutes = lazy(() =>
         "json",
         z.object({
           title: z.string().optional(),
-          light: Session.Info.shape.light,
           time: z
             .object({
               archived: z.number().optional(),
@@ -284,9 +283,6 @@ export const SessionRoutes = lazy(() =>
 
         if (updates.title !== undefined) {
           await Session.setTitle({ sessionID, title: updates.title })
-        }
-        if (updates.light !== undefined) {
-          await Session.setLight({ sessionID, light: updates.light })
         }
         if (updates.time?.archived !== undefined) {
           await Session.setArchived({ sessionID, time: updates.time.archived })

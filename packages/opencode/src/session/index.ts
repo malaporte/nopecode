@@ -74,7 +74,6 @@ export namespace Session {
       parentID: row.parent_id ?? undefined,
       title: row.title,
       version: row.version,
-      light: row.light ?? undefined,
       summary,
       share,
       revert,
@@ -98,7 +97,6 @@ export namespace Session {
       directory: info.directory,
       title: info.title,
       version: info.version,
-      light: info.light,
       share_url: info.share?.url,
       summary_additions: info.summary?.additions,
       summary_deletions: info.summary?.deletions,
@@ -131,11 +129,6 @@ export namespace Session {
       workspaceID: WorkspaceID.zod.optional(),
       directory: z.string(),
       parentID: SessionID.zod.optional(),
-      light: z
-        .object({
-          enabled: z.boolean().optional(),
-        })
-        .optional(),
       summary: z
         .object({
           additions: z.number(),
@@ -246,7 +239,6 @@ export namespace Session {
       .object({
         parentID: SessionID.zod.optional(),
         title: z.string().optional(),
-        light: Info.shape.light,
         permission: Info.shape.permission,
         workspaceID: WorkspaceID.zod.optional(),
       })
@@ -256,7 +248,6 @@ export namespace Session {
         parentID: input?.parentID,
         directory: Instance.directory,
         title: input?.title,
-        light: input?.light,
         permission: input?.permission,
         workspaceID: input?.workspaceID,
       })
@@ -276,7 +267,6 @@ export namespace Session {
         directory: Instance.directory,
         workspaceID: original.workspaceID,
         title,
-        light: original.light,
       })
       const msgs = await messages({ sessionID: input.sessionID })
       const idMap = new Map<string, MessageID>()
@@ -318,10 +308,8 @@ export namespace Session {
     parentID?: SessionID
     workspaceID?: WorkspaceID
     directory: string
-    light?: Info["light"]
     permission?: Permission.Ruleset
   }) {
-    const light = input.parentID && input.light === undefined ? (await get(input.parentID)).light : input.light
     const result: Info = {
       id: SessionID.descending(input.id),
       slug: Slug.create(),
@@ -331,7 +319,6 @@ export namespace Session {
       workspaceID: input.workspaceID,
       parentID: input.parentID,
       title: input.title ?? createDefaultTitle(!!input.parentID),
-      light,
       permission: input.permission,
       time: {
         created: Date.now(),
@@ -424,27 +411,6 @@ export namespace Session {
       SyncEvent.run(Event.Updated, {
         sessionID: input.sessionID,
         info: { permission: input.permission, time: { updated: Date.now() } },
-      })
-    },
-  )
-
-  export const setLight = fn(
-    z.object({
-      sessionID: SessionID.zod,
-      light: Info.shape.light,
-    }),
-    async (input) => {
-      return Database.use((db) => {
-        const row = db
-          .update(SessionTable)
-          .set({ light: input.light ?? null, time_updated: Date.now() })
-          .where(eq(SessionTable.id, input.sessionID))
-          .returning()
-          .get()
-        if (!row) throw new NotFoundError({ message: `Session not found: ${input.sessionID}` })
-        const info = fromRow(row)
-        Database.effect(() => Bus.publish(Event.Updated, { sessionID: info.id, info }))
-        return info
       })
     },
   )

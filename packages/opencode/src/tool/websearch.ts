@@ -1,7 +1,6 @@
 import z from "zod"
 import { Tool } from "./tool"
 import DESCRIPTION from "./websearch.txt"
-import LIGHT from "./websearch-light.txt"
 import { abortAfterAny } from "../util/abort"
 
 const API_CONFIG = {
@@ -60,7 +59,7 @@ const parameters = z.object({
 export const WebSearchTool = Tool.define("websearch", async (ctx) => {
   return {
     get description() {
-      return (ctx?.light ? LIGHT : DESCRIPTION).replace("{{year}}", new Date().getFullYear().toString())
+      return DESCRIPTION.replace("{{year}}", new Date().getFullYear().toString())
     },
     parameters,
     async execute(params: z.infer<typeof parameters>, ctx) {
