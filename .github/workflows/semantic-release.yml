@@ -33,10 +33,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          output=$(bun run node_modules/.bin/semantic-release --repository-url https://x-access-token:${GITHUB_TOKEN}@github.com/malaporte/nopecode.git 2>&1)
+          output=$(bun run node_modules/.bin/semantic-release --repository-url https://x-access-token:${GITHUB_TOKEN}@github.com/malaporte/nopecode.git 2>&1) || rc=$?
           echo "$output"
           tag=$(echo "$output" | grep -oP 'Created tag \Kv[^\s]+' || true)
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          exit ${rc:-0}
 
       - name: Trigger publish-fork
         if: steps.release.outputs.tag != ''
