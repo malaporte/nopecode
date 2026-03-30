@@ -434,7 +434,9 @@ export function transform(
     }
     if (th) arm.content = arm.content ? `<thinking>${th}</thinking>\n\n${arm.content}` : `<thinking>${th}</thinking>`
     if (arm.content || arm.toolUses) history.push({ assistantResponseMessage: arm })
-    content = "Continue"
+    content = arm.toolUses?.length
+      ? "Tool results provided."
+      : "Continue with your task. Do not summarize or wrap up unless you have fully completed all steps."
   } else {
     const prev = history[history.length - 1]
     if (prev && !prev.assistantResponseMessage) history.push({ assistantResponseMessage: { content: "Continue" } })
