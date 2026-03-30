@@ -1,3 +1,10 @@
+## [1000.19.2](https://github.com/malaporte/nopecode/compare/v1000.19.1...v1000.19.2) (2026-03-30)
+
+
+### Bug Fixes
+
+* restore ✦ credit symbol for kiro provider ([#20](https://github.com/malaporte/nopecode/issues/20)) ([e8cfd91](https://github.com/malaporte/nopecode/commit/e8cfd9198d8d6b45e71bae12c491e4020de21f2e))
+
 ## [1000.19.1](https://github.com/malaporte/nopecode/compare/v1000.19.0...v1000.19.1) (2026-03-30)
 
 
