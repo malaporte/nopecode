@@ -1,3 +1,10 @@
+## [1000.19.1](https://github.com/malaporte/nopecode/compare/v1000.19.0...v1000.19.1) (2026-03-30)
+
+
+### Bug Fixes
+
+* **kiro:** prevent premature agent loop exit on synthetic continue message ([#19](https://github.com/malaporte/nopecode/issues/19)) ([70b846a](https://github.com/malaporte/nopecode/commit/70b846af9acaa3cb4cedb08510585a66f4c4a1dd))
+
 # [1000.19.0](https://github.com/malaporte/nopecode/compare/v1000.18.1...v1000.19.0) (2026-03-30)
 
 
