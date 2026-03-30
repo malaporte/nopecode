@@ -1,3 +1,45 @@
+# [1000.19.0](https://github.com/malaporte/nopecode/compare/v1000.18.1...v1000.19.0) (2026-03-30)
+
+
+### Bug Fixes
+
+* **app:** default file tree to closed with minimum width ([#19426](https://github.com/malaporte/nopecode/issues/19426)) ([e973bbf](https://github.com/malaporte/nopecode/commit/e973bbf54a519566bfdccce3474178b26b163a6d))
+* **app:** default shell tool to collapsed ([ad3b350](https://github.com/malaporte/nopecode/commit/ad3b35067298a0803eef0c306510d37670ec8b18))
+* **app:** don't bundle fonts ([#19329](https://github.com/malaporte/nopecode/issues/19329)) ([b8fb75a](https://github.com/malaporte/nopecode/commit/b8fb75a94adbd9f0175e29403cd85fde55cc2793))
+* **app:** more startup efficiency ([#19454](https://github.com/malaporte/nopecode/issues/19454)) ([f736116](https://github.com/malaporte/nopecode/commit/f736116967f5b57d89978e51961f2e78eedb443b))
+* **app:** more startup perf ([#19288](https://github.com/malaporte/nopecode/issues/19288)) ([c7760b4](https://github.com/malaporte/nopecode/commit/c7760b433b1bdbcaed7e7cd55d53b5b331f0f0fa))
+* **app:** persist queued followups across project switches ([#19421](https://github.com/malaporte/nopecode/issues/19421)) ([d2bfa92](https://github.com/malaporte/nopecode/commit/d2bfa92e7438eb7ac7c4e2d72fca708f27c52ba3))
+* **app:** remove fork session button ([311ba41](https://github.com/malaporte/nopecode/commit/311ba4179a3c112a7e0cbbeae152a971284a3632))
+* **app:** resize layout viewport when mobile keyboard appears ([#15841](https://github.com/malaporte/nopecode/issues/15841)) ([bdd7829](https://github.com/malaporte/nopecode/commit/bdd7829c689830668ae9a6026f3187196774797c))
+* **desktop-electron:** match dev dock icon inset on macOS ([#19429](https://github.com/malaporte/nopecode/issues/19429)) ([d36b38e](https://github.com/malaporte/nopecode/commit/d36b38e4a6f5b778644669ba281fb5a35cf2f028))
+* discourage _noop tool call during LiteLLM compaction ([#18539](https://github.com/malaporte/nopecode/issues/18539)) ([196a03c](https://github.com/malaporte/nopecode/commit/196a03caff570d98a116c5c29e9fddda03b7c824))
+* ensure OPENCODE_DISABLE_CLAUDE_CODE_PROMPT is respected for project lvl CLAUDE.md ([#19924](https://github.com/malaporte/nopecode/issues/19924)) ([afb6abf](https://github.com/malaporte/nopecode/commit/afb6abff73bdc1577f7388d8273e2eba69849e08))
+* **mcp:** close transport on failed/timed-out connections ([#19200](https://github.com/malaporte/nopecode/issues/19200)) ([2e6ac8f](https://github.com/malaporte/nopecode/commit/2e6ac8ff49eabcb1b62c1bd504338e7449f80c6e))
+* nix embedded web-ui support ([#19561](https://github.com/malaporte/nopecode/issues/19561)) ([ff37d7c](https://github.com/malaporte/nopecode/commit/ff37d7c2df04573308a200ec6d02e947ff0c50b3))
+* **opencode:** ignore generated models snapshot files ([#19362](https://github.com/malaporte/nopecode/issues/19362)) ([7715252](https://github.com/malaporte/nopecode/commit/771525270a0c4d1394b3117e5842847a51caf72d))
+* respect semver build identifiers for nix ([#11915](https://github.com/malaporte/nopecode/issues/11915)) ([4f96eb2](https://github.com/malaporte/nopecode/commit/4f96eb239ffa5615bdb87ffbdd64e20904f447a5))
+* restore subagent footer and fix style guide violations ([#19491](https://github.com/malaporte/nopecode/issues/19491)) ([c3a9ec4](https://github.com/malaporte/nopecode/commit/c3a9ec4a99f2636ec032091dd4b18b13ff3e25f3))
+* **session:** fix token usage double-counting w/ anthropic & bedrock due to AI SDK v6 upgrade ([#19758](https://github.com/malaporte/nopecode/issues/19758)) ([72c77d0](https://github.com/malaporte/nopecode/commit/72c77d0e7b488dd1c0c62287b56623915b469506))
+* stabilize release changelog generation ([#19987](https://github.com/malaporte/nopecode/issues/19987)) ([6926fe1](https://github.com/malaporte/nopecode/commit/6926fe1c7455f4cd075d374b188850c14cda0fb2))
+* **ui:** keep partial markdown readable while responses stream ([#19403](https://github.com/malaporte/nopecode/issues/19403)) ([d341499](https://github.com/malaporte/nopecode/commit/d3414996845bb05e27059902c2bcca21e8ef6c36))
+* **ui:** make streamed markdown feel more continuous ([#19404](https://github.com/malaporte/nopecode/issues/19404)) ([a93374c](https://github.com/malaporte/nopecode/commit/a93374c48f724ebbc99886ac5d607a3990090b75))
+* **ui:** reduce markdown jank while responses stream ([#19304](https://github.com/malaporte/nopecode/issues/19304)) ([b7a06e1](https://github.com/malaporte/nopecode/commit/b7a06e193952a66a8efa07feb4e105f44bf7ea8b))
+* update opencode-gitlab-auth to 2.0.1 ([#19552](https://github.com/malaporte/nopecode/issues/19552)) ([1f290fc](https://github.com/malaporte/nopecode/commit/1f290fc1ba520e01b8dd450d738069ed1e6e8578))
+* web ui bundle build on windows ([#19337](https://github.com/malaporte/nopecode/issues/19337)) ([ef7d1f7](https://github.com/malaporte/nopecode/commit/ef7d1f7efa2e682cf0e3e322009fe84b577bbe02))
+
+
+### Features
+
+* add gpt prompt so non codex gpt models have their own system prompt modeled after codex cli ([#19220](https://github.com/malaporte/nopecode/issues/19220)) ([da1d372](https://github.com/malaporte/nopecode/commit/da1d37274fcc6dcb81ff76ebcf2818100239aa87))
+* add model variant selection dialog ([#19488](https://github.com/malaporte/nopecode/issues/19488)) ([41b0d03](https://github.com/malaporte/nopecode/commit/41b0d03f6afabc30696e9ccbbdbb7c3df34fd404))
+* AI SDK v6 support ([#18433](https://github.com/malaporte/nopecode/issues/18433)) ([c33d999](https://github.com/malaporte/nopecode/commit/c33d9996f0e630d15b6e40b9a1feb578e991561a))
+* **ci:** use Azure Artifact Signing for Windows releases ([#15201](https://github.com/malaporte/nopecode/issues/15201)) ([82fc493](https://github.com/malaporte/nopecode/commit/82fc493520925cb71323964bff6939e768e6d83a))
+* **core:** remove workspace server, WorkspaceContext, start work towards better routing ([#19316](https://github.com/malaporte/nopecode/issues/19316)) ([3845044](https://github.com/malaporte/nopecode/commit/38450443b18c4736acaa2310fbe480674f68369d))
+* dialog variant menu and subagent improvements ([#19537](https://github.com/malaporte/nopecode/issues/19537)) ([aa2d753](https://github.com/malaporte/nopecode/commit/aa2d753e7edbf323baf635aec7972b673d2b64a3))
+* integrate upstream OpenCode v1.3.7 ([cd2be0d](https://github.com/malaporte/nopecode/commit/cd2be0d2ef199087dc8e43f5aa98299ef71d9ec7))
+* open dialog for model variant selection instead of cycling ([#19534](https://github.com/malaporte/nopecode/issues/19534)) ([2b86b36](https://github.com/malaporte/nopecode/commit/2b86b36c8cd7d13a64d1e85296554cf5414d532b))
+* **windows:** add first-class pwsh/powershell support ([#16069](https://github.com/malaporte/nopecode/issues/16069)) ([b234370](https://github.com/malaporte/nopecode/commit/b2343700807e8ab33549a5a2fbd8652d9e1626f2))
+
 ## [1000.18.1](https://github.com/malaporte/nopecode/compare/v1000.18.0...v1000.18.1) (2026-03-27)
 
 
