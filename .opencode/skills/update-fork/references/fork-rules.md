@@ -10,34 +10,6 @@ This repository is a fork of upstream OpenCode maintained at `malaporte/nopecode
 - Common local layout in this repo: `origin=upstream`, `mine=fork`
 - The skill must detect remotes instead of assuming those names
 
-## Preserve These Rules
-
-- Global config root is `~/.config/opencode` (same as upstream)
-- Installed CLI path is `~/.opencode/bin/opencode` (same as upstream)
-- Release CLI assets are named `opencode-*` (same as upstream)
-- Project-local config conventions intentionally stay upstream-shaped, including `.opencode` and `opencode.json`
-
-- Allowed providers are only `openai` and `github-copilot`
-- Provider login must not surface blocked providers
-- `github-copilot` models must exclude Grok variants
-
-- Custom plugins are intentionally disabled
-- The loader-side block for custom plugins must stay in place
-- The user-facing warning for ignored configured plugins must stay in place
-- Notification behavior should stay built into internal plugins
-
-- CLI autoupdate is intentionally disabled by default
-- Manual TUI update remains available through `/update` and `/upgrade`
-
-- Fork release CI lives in `.github/workflows/publish-fork.yml`
-- Upstream publish workflow behavior should stay separate
-
-- Fork versions intentionally stay above `1000`
-- Do not normalize them back to upstream-style low versions
-
-- macOS signing currently tolerates non-Developer-ID fallback
-- Do not reintroduce stricter signing assumptions without an explicit change request
-
 ## Conflict Hotspots
 
 Check these areas first when merges get messy:

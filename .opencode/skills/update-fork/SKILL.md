@@ -9,7 +9,7 @@ Use this skill when working on upstream integration for this repository.
 
 ## Workflow
 
-1. Read `references/fork-rules.md` before changing code.
+1. Read `DIFFERENCES.md` at the repo root — it is the authoritative inventory of fork-specific behaviors that must be preserved. Then read `references/fork-rules.md` for conflict hotspots and security-sensitive area checklists.
 2. Inspect git remotes and detect which remote is upstream OpenCode and which remote is the fork.
 3. Confirm the upstream default branch is `dev`.
 4. Fetch both fork and upstream before diffing or merging.
@@ -40,10 +40,7 @@ Use this skill when working on upstream integration for this repository.
 
 ## Conflict Policy
 
-- Preserve provider restrictions and blocked provider login behavior.
-- Preserve the custom plugin block and the built-in notification behavior.
-- Preserve autoupdate defaults and fork versioning rules.
-- Prefer the fork implementation when upstream and fork conflict on one of those rules.
+- Preserve all behaviors documented in `DIFFERENCES.md`. Prefer the fork implementation for any conflict touching those areas.
 - Prefer upstream implementation when the change is unrelated to fork policy and does not break the fork.
 
 ## Security Review

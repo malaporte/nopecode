@@ -5,20 +5,9 @@
 - The target branch for PRs in the `malaporte/nopecode` fork is `main`, not `dev`.
 - Prefer automation: execute requested actions without confirmation unless blocked by missing info or safety/irreversibility.
 
-## Branch Notes
+## Fork Differences
 
-- This branch is a forked build maintained at `malaporte/nopecode`, but uses the same `opencode` CLI name, config path (`~/.config/opencode`), install path (`~/.opencode/bin`), and release asset names (`opencode-*`) as upstream to minimize merge diff.
-- Project-local config conventions are intentionally unchanged and still use upstream names like `.opencode` and `opencode.json`.
-- Provider policy is branch-specific:
-  - only `openai` and `github-copilot` are allowed
-  - `providers login` must not surface blocked providers
-  - `github-copilot` models must exclude Grok variants
-- Custom plugins are intentionally disabled in this branch. Preserve the loader-side block and the user-facing warning for ignored configured plugins.
-- This branch includes a built-in notification plugin as an internal plugin. Prefer keeping notification behavior inside built-ins rather than reopening support for custom plugins.
-- CLI autoupdate is intentionally disabled by default in this fork to avoid self-overwriting with older published releases. Manual TUI update remains available via `/update` and `/upgrade`.
-- Fork release CI lives in `.github/workflows/publish-fork.yml` and targets `malaporte/nopecode`. Keep upstream publish workflow behavior separate to reduce merge conflict risk.
-- Fork version numbers intentionally stay above `1000` to avoid confusion with upstream OpenCode releases. Treat `1000+` versions as the normal release line for `nopecode`, not as placeholders to normalize back down.
-- macOS signing in the fork currently tolerates non-Developer-ID fallback for semi-usable assets. Be careful not to reintroduce strict signing assumptions unless the cert setup changes.
+See [DIFFERENCES.md](./DIFFERENCES.md) for a full inventory of intentional divergences from upstream and what must be preserved during merges.
 
 ## Style Guide
 
