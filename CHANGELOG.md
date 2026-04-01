@@ -1,3 +1,10 @@
+## [1000.19.3](https://github.com/malaporte/nopecode/compare/v1000.19.2...v1000.19.3) (2026-04-01)
+
+
+### Bug Fixes
+
+* sort log files before cleanup to prevent unlinking active log ([#21](https://github.com/malaporte/nopecode/issues/21)) ([47422dc](https://github.com/malaporte/nopecode/commit/47422dc2efec1768a7ead81753a2ae2f9cc2c0e9))
+
 ## [1000.19.2](https://github.com/malaporte/nopecode/compare/v1000.19.1...v1000.19.2) (2026-03-30)
 
 
