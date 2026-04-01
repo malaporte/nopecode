@@ -85,7 +85,11 @@ export namespace Log {
     })
     if (files.length <= 5) return
 
-    const filesToDelete = files.slice(0, -10)
+    // FORK: sort alphabetically before slicing so the newest files are kept.
+    // Glob.scan returns results in arbitrary order; without sorting, the newly
+    // created log file can land at index 0 and get unlinked while still held
+    // open by the write stream, making it invisible in the directory listing.
+    const filesToDelete = files.sort().slice(0, -10)
     await Promise.all(filesToDelete.map((file) => fs.unlink(file).catch(() => {})))
   }
 
