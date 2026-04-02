@@ -70,17 +70,18 @@ Added to `INTERNAL_PLUGINS` in `plugin/index.ts`.
 
 ## 5. Sandbox / Pippin Integration
 
-**Files:** `packages/opencode/src/tool/bash.ts`, `packages/opencode/src/cli/cmd/tui/context/sync.tsx`, `packages/opencode/src/cli/cmd/tui/component/prompt/index.tsx`, `packages/opencode/src/cli/cmd/tui/app.tsx`, `packages/opencode/src/cli/cmd/tui/routes/session/sidebar.tsx`, `packages/opencode/src/cli/cmd/tui/routes/session/permission.tsx`
+**Files:** `packages/opencode/src/tool/bash.ts`, `packages/opencode/src/tool/bash.txt`, `packages/opencode/src/cli/cmd/tui/context/sync.tsx`, `packages/opencode/src/cli/cmd/tui/component/prompt/index.tsx`, `packages/opencode/src/cli/cmd/tui/app.tsx`, `packages/opencode/src/cli/cmd/tui/routes/session/sidebar.tsx`, `packages/opencode/src/cli/cmd/tui/routes/session/permission.tsx`
 
-Bash commands are optionally routed through a sandbox process (`pippin run <command>`) when `config.sandbox.enabled !== false`:
+Bash commands are optionally routed through a sandbox process (`pippin -c <command>`) when `config.sandbox.enabled !== false`:
 
-- **Bash tool** (`bash.ts`): gains two new parameters — `unsandboxed` (boolean) and `unsandboxed_reason` (string). When `unsandboxed: true` is requested, the tool calls `ctx.ask()` with permission `unsandboxed_bash` before running the command on the host. The sandbox command, host, and port are configurable via `config.sandbox`.
+- **Bash tool** (`bash.ts`): gains two new parameters — `unsandboxed` (boolean) and `unsandboxed_reason` (string). When `unsandboxed: true` is requested, the tool calls `ctx.ask()` with permission `unsandboxed_bash` before running the command on the host.
+- **Bash tool description** (`bash.txt`): contains a `# Sandbox` section explaining the sandbox to the model and when to use `unsandboxed`. This section must be preserved on every merge — its absence silently breaks the unsandboxed escape hatch.
 - **Permission prompt** (`permission.tsx`): handles the `unsandboxed_bash` permission type, displaying the reason and command to the user.
 - **TUI prompt indicator** (`prompt/index.tsx`): a clickable "◆ Sandbox on / ◇ Sandbox off" hint is shown in the prompt hints row. Color reflects state (green = on, yellow = off).
 - **`/sandbox` slash command** (`app.tsx`): toggles `config.sandbox.enabled` via the SDK and updates the sync store optimistically.
 - **Sandbox errors sidebar** (`sidebar.tsx`, `sync.tsx`): failed sandboxed commands (non-zero exit, not `unsandboxed`) are tracked in `sync.data.sandbox_errors` per session (capped at 20). The sidebar shows a collapsible "Sandbox Errors" section with command, exit code, and output. A clear button calls `sync.clearSandboxErrors()`.
 
-**Preserve:** all sandbox-related params on the bash tool, the `unsandboxed_bash` permission handler, the prompt indicator, the `/sandbox` command, and the sandbox errors sidebar/sync state.
+**Preserve:** all sandbox-related params on the bash tool, the `# Sandbox` section in `bash.txt`, the `unsandboxed_bash` permission handler, the prompt indicator, the `/sandbox` command, and the sandbox errors sidebar/sync state.
 
 ---
 

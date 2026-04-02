@@ -1077,16 +1077,10 @@ export namespace Config {
         .optional(),
       sandbox: z
         .object({
-          enabled: z.boolean().optional().describe("Enable sandboxed command execution via `pippin run`"),
-          command: z
-            .string()
-            .optional()
-            .describe("Path to the pippin binary used for `pippin run`. Defaults to 'pippin' (resolved from PATH)"),
-          host: z.string().optional().describe("PIPPIN_HOST override"),
-          port: z.number().int().positive().optional().describe("PIPPIN_PORT override"),
+          enabled: z.boolean().optional().describe("Enable sandboxed command execution via `pippin -c`"),
         })
         .optional()
-        .describe("Route bash tool commands through a sandboxed container via the `pippin run` CLI"),
+        .describe("Route bash tool commands through a sandboxed container via `pippin -c`"),
       experimental: z
         .object({
           disable_paste_summary: z.boolean().optional(),
