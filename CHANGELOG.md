@@ -1,3 +1,10 @@
+## [1000.19.4](https://github.com/malaporte/nopecode/compare/v1000.19.3...v1000.19.4) (2026-04-02)
+
+
+### Bug Fixes
+
+* **sandbox:** remove pippin run references, simplify config, restore sandbox instructions ([#22](https://github.com/malaporte/nopecode/issues/22)) ([3516f22](https://github.com/malaporte/nopecode/commit/3516f228bcf2cda6ced879457f07c67aa0ad0e8c))
+
 ## [1000.19.3](https://github.com/malaporte/nopecode/compare/v1000.19.2...v1000.19.3) (2026-04-01)
 
 
