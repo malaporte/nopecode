@@ -512,19 +512,13 @@ export const BashTool = Tool.define("bash", async (ctx) => {
 
       const env = await shellEnv(ctx, cwd)
       if (sandbox && !bypass) {
-        const sandboxCmd = sandbox.command || "pippin"
-        const sandboxEnv = {
-          ...env,
-          ...(sandbox.host ? { PIPPIN_HOST: sandbox.host } : {}),
-          ...(sandbox.port ? { PIPPIN_PORT: String(sandbox.port) } : {}),
-        }
         return run(
           {
-            shell: sandboxCmd,
-            name: sandboxCmd,
+            shell: "pippin",
+            name: "pippin",
             command: params.command,
             cwd,
-            env: sandboxEnv,
+            env,
             timeout,
             description: params.description,
           },
