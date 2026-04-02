@@ -1,3 +1,10 @@
+## [1000.19.5](https://github.com/malaporte/nopecode/compare/v1000.19.4...v1000.19.5) (2026-04-02)
+
+
+### Bug Fixes
+
+* **kiro:** use explicit continue prompt after tool results to prevent premature loop exit ([#23](https://github.com/malaporte/nopecode/issues/23)) ([1258970](https://github.com/malaporte/nopecode/commit/12589704d366f44d09fdf78f27308f220d9784a1))
+
 ## [1000.19.4](https://github.com/malaporte/nopecode/compare/v1000.19.3...v1000.19.4) (2026-04-02)
 
 
