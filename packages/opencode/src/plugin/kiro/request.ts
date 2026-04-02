@@ -471,7 +471,10 @@ export function transform(
     } else {
       content = text(cur)
     }
-    if (!content) content = curTrs.length ? "Tool results provided." : "Continue"
+    if (!content)
+      content = curTrs.length
+        ? "Tool results provided. Continue with your task. Do not summarize or wrap up unless you have fully completed all steps."
+        : "Continue with your task. Do not summarize or wrap up unless you have fully completed all steps."
   }
 
   const request: CWRequest = {
