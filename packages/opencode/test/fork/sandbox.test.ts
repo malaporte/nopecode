@@ -80,3 +80,31 @@ describe("fork.sandbox", () => {
     expect(BASH_DESCRIPTION).toContain("unsandboxed: true")
   })
 })
+
+describe("fork.sandbox.description-substitutions", () => {
+  // DIFFERENCES.md §5 calls out that upstream's Effect refactor dropped three
+  // of the six replaceAll substitutions (${os}, ${shell}, ${chaining}).
+  // These tests catch that regression on every future merge touching bash.ts.
+
+  test("bash.txt contains all six substitution placeholders", () => {
+    expect(BASH_DESCRIPTION).toContain("${directory}")
+    expect(BASH_DESCRIPTION).toContain("${os}")
+    expect(BASH_DESCRIPTION).toContain("${shell}")
+    expect(BASH_DESCRIPTION).toContain("${chaining}")
+    expect(BASH_DESCRIPTION).toContain("${maxLines}")
+    expect(BASH_DESCRIPTION).toContain("${maxBytes}")
+  })
+
+  test("built description has no unreplaced ${...} placeholders", async () => {
+    await using tmp = await tmpdir({ git: true })
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const { BashTool } = await import("../../src/tool/bash")
+        const def = await BashTool.init()
+        // If any replaceAll call was dropped, the raw ${...} token remains
+        expect(def.description).not.toMatch(/\$\{[^}]+\}/)
+      },
+    })
+  })
+})
