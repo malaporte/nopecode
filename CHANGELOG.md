@@ -1,3 +1,10 @@
+## [1000.19.6](https://github.com/malaporte/nopecode/compare/v1000.19.5...v1000.19.6) (2026-04-03)
+
+
+### Bug Fixes
+
+* **sandbox:** restore description substitutions and add unsandboxed_bash permission default ([#24](https://github.com/malaporte/nopecode/issues/24)) ([ef4dcf1](https://github.com/malaporte/nopecode/commit/ef4dcf114e75e4571eb4161c2352b6d4964bc585))
+
 ## [1000.19.5](https://github.com/malaporte/nopecode/compare/v1000.19.4...v1000.19.5) (2026-04-02)
 
 
