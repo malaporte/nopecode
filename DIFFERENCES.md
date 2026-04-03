@@ -70,18 +70,25 @@ Added to `INTERNAL_PLUGINS` in `plugin/index.ts`.
 
 ## 5. Sandbox / Pippin Integration
 
-**Files:** `packages/opencode/src/tool/bash.ts`, `packages/opencode/src/tool/bash.txt`, `packages/opencode/src/cli/cmd/tui/context/sync.tsx`, `packages/opencode/src/cli/cmd/tui/component/prompt/index.tsx`, `packages/opencode/src/cli/cmd/tui/app.tsx`, `packages/opencode/src/cli/cmd/tui/routes/session/sidebar.tsx`, `packages/opencode/src/cli/cmd/tui/routes/session/permission.tsx`
+**Files:** `packages/opencode/src/tool/bash.ts`, `packages/opencode/src/tool/bash.txt`, `packages/opencode/src/agent/agent.ts`, `packages/opencode/src/cli/cmd/tui/context/sync.tsx`, `packages/opencode/src/cli/cmd/tui/component/prompt/index.tsx`, `packages/opencode/src/cli/cmd/tui/app.tsx`, `packages/opencode/src/cli/cmd/tui/routes/session/sidebar.tsx`, `packages/opencode/src/cli/cmd/tui/routes/session/permission.tsx`
 
 Bash commands are optionally routed through a sandbox process (`pippin -c <command>`) when `config.sandbox.enabled !== false`:
 
-- **Bash tool** (`bash.ts`): gains two new parameters — `unsandboxed` (boolean) and `unsandboxed_reason` (string). When `unsandboxed: true` is requested, the tool calls `ctx.ask()` with permission `unsandboxed_bash` before running the command on the host.
+- **Bash tool** (`bash.ts`): gains two new parameters — `unsandboxed` (boolean) and `unsandboxed_reason` (string). When `unsandboxed: true` is requested, the tool calls `ctx.ask()` with permission `unsandboxed_bash` before running the command on the host. The description is built with six `replaceAll` substitutions: `${directory}`, `${os}`, `${shell}`, `${chaining}`, `${maxLines}`, `${maxBytes}` — all six must be present or the model receives garbled instructions.
 - **Bash tool description** (`bash.txt`): contains a `# Sandbox` section explaining the sandbox to the model and when to use `unsandboxed`. This section must be preserved on every merge — its absence silently breaks the unsandboxed escape hatch.
+- **Agent defaults** (`agent.ts`): `unsandboxed_bash: "ask"` is added to the `defaults` permission ruleset **after** the `"*": "allow"` wildcard entry. This is critical — `Permission.evaluate` uses `findLast`, so without this explicit entry the wildcard silently auto-allows all `unsandboxed_bash` requests, bypassing the user confirmation prompt entirely. Every upstream merge that touches `agent.ts` must verify this entry is still present and still positioned after `"*": "allow"`.
 - **Permission prompt** (`permission.tsx`): handles the `unsandboxed_bash` permission type, displaying the reason and command to the user.
 - **TUI prompt indicator** (`prompt/index.tsx`): a clickable "◆ Sandbox on / ◇ Sandbox off" hint is shown in the prompt hints row. Color reflects state (green = on, yellow = off).
 - **`/sandbox` slash command** (`app.tsx`): toggles `config.sandbox.enabled` via the SDK and updates the sync store optimistically.
 - **Sandbox errors sidebar** (`sidebar.tsx`, `sync.tsx`): failed sandboxed commands (non-zero exit, not `unsandboxed`) are tracked in `sync.data.sandbox_errors` per session (capped at 20). The sidebar shows a collapsible "Sandbox Errors" section with command, exit code, and output. A clear button calls `sync.clearSandboxErrors()`.
 
-**Preserve:** all sandbox-related params on the bash tool, the `# Sandbox` section in `bash.txt`, the `unsandboxed_bash` permission handler, the prompt indicator, the `/sandbox` command, and the sandbox errors sidebar/sync state.
+> **SECURITY NOTE — do not lose these on merges:**
+>
+> 1. `unsandboxed_bash: "ask"` in `agent.ts` defaults (after `"*": "allow"`). Without it, the model can run any command on the host without user confirmation.
+> 2. All six `replaceAll` substitutions in `bash.ts` description building (`${os}`, `${shell}`, `${chaining}` were dropped by upstream's Effect refactor in `e4ff1ea77` and must be restored after every merge that touches `bash.ts`).
+> 3. The `# Sandbox` section in `bash.txt`.
+
+**Preserve:** all sandbox-related params on the bash tool, all six description substitutions in `bash.ts`, the `unsandboxed_bash: "ask"` default in `agent.ts`, the `# Sandbox` section in `bash.txt`, the `unsandboxed_bash` permission handler, the prompt indicator, the `/sandbox` command, and the sandbox errors sidebar/sync state.
 
 ---
 
