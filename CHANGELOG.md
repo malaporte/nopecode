@@ -1,3 +1,24 @@
+# [1000.20.0](https://github.com/malaporte/nopecode/compare/v1000.19.6...v1000.20.0) (2026-04-03)
+
+
+### Bug Fixes
+
+* agent value passed to chat.params and chat.headers hooks was not a string ([#19996](https://github.com/malaporte/nopecode/issues/19996)) ([9f3c2bd](https://github.com/malaporte/nopecode/commit/9f3c2bd861691e2415c027f87e23302b57026a6e))
+* **Opencode:** Bump ai-sdk/xai to 3.0.75 to fix tool calls ([#20123](https://github.com/malaporte/nopecode/issues/20123)) ([e3e1e9a](https://github.com/malaporte/nopecode/commit/e3e1e9af507120cabfcdc31fd20227d67d3906e8))
+* **plugin:** properly resolve entrypoints without leading dot ([#20140](https://github.com/malaporte/nopecode/issues/20140)) ([1de0645](https://github.com/malaporte/nopecode/commit/1de06452d39872e980ca3992a1aca9b87b4469ac))
+* preserve image attachments when selecting slash commands ([#19771](https://github.com/malaporte/nopecode/issues/19771)) ([3c32013](https://github.com/malaporte/nopecode/commit/3c32013eb122d794089e011d2ec7077395d6f1c4))
+* rm exclusion of ai-sdk/azure in transform.ts, when we migrated to v6 the ai sdk changed the key for ai-sdk/azure so the exclusion is no longer needed ([#20326](https://github.com/malaporte/nopecode/issues/20326)) ([4dd866d](https://github.com/malaporte/nopecode/commit/4dd866d5c47f8e4db08796cfbb83bc6d5c0a8ce5))
+* **session:** restore busy route handling and add regression coverage ([#20125](https://github.com/malaporte/nopecode/issues/20125)) ([2ed756c](https://github.com/malaporte/nopecode/commit/2ed756c72cb3c525a540b7f98b6b9f87799178b9))
+* **session:** subagents not being clickable ([#20263](https://github.com/malaporte/nopecode/issues/20263)) ([befbeda](https://github.com/malaporte/nopecode/commit/befbedacdc0116f87f8c8e10bfbf892d64b239c2))
+* **theme:** darken muted text in catppuccin tui themes ([#20161](https://github.com/malaporte/nopecode/issues/20161)) ([bf77729](https://github.com/malaporte/nopecode/commit/bf777298c8b64997bcbb8e52b016e417e7e62114))
+
+
+### Features
+
+* add a dedicated system prompt for Kimi models ([#20259](https://github.com/malaporte/nopecode/issues/20259)) ([2daf4b8](https://github.com/malaporte/nopecode/commit/2daf4b805a76f8b8cbaad43932f8f26bce354f3d))
+* enable prompt caching and cache token tracking for google-vertex-anthropic ([#20266](https://github.com/malaporte/nopecode/issues/20266)) ([26cc924](https://github.com/malaporte/nopecode/commit/26cc924ea223cb27449b432beddb8abcfc36e65b))
+* Merge upstream v1.3.13 ([#25](https://github.com/malaporte/nopecode/issues/25)) ([e89a2f5](https://github.com/malaporte/nopecode/commit/e89a2f589480be81146e4b4007499817ad24e02b))
+
 ## [1000.19.6](https://github.com/malaporte/nopecode/compare/v1000.19.5...v1000.19.6) (2026-04-03)
 
 
