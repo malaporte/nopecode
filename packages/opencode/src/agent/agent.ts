@@ -99,6 +99,8 @@ export namespace Agent {
               "*.env.*": "ask",
               "*.env.example": "allow",
             },
+            // must come after "*": "allow" so findLast picks this up over the wildcard
+            unsandboxed_bash: "ask",
           })
 
           const user = Permission.fromConfig(cfg.permission ?? {})

@@ -479,6 +479,9 @@ export const BashTool = Tool.define("bash", async (ctx) => {
       : "If the commands depend on each other and must run sequentially, use a single Bash call with '&&' to chain them together (e.g., `git add . && git commit -m \"message\" && git push`). For instance, if one operation must complete before another starts (like mkdir before cp, Write before Bash for git operations, or git add before git commit), run these operations sequentially instead."
   log.info("bash tool using shell", { shell })
   const description = DESCRIPTION.replaceAll("${directory}", Instance.directory)
+    .replaceAll("${os}", process.platform)
+    .replaceAll("${shell}", name)
+    .replaceAll("${chaining}", chain)
     .replaceAll("${maxLines}", String(Truncate.MAX_LINES))
     .replaceAll("${maxBytes}", String(Truncate.MAX_BYTES))
   const parameters = schema()
