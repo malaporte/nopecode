@@ -1,3 +1,10 @@
+## [1000.20.1](https://github.com/malaporte/nopecode/compare/v1000.20.0...v1000.20.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* **sandbox:** clarify network access and prohibit preemptive unsandboxed requests ([#26](https://github.com/malaporte/nopecode/issues/26)) ([f94fa7b](https://github.com/malaporte/nopecode/commit/f94fa7ba405d819080f2ba44af640eb81076ecec))
+
 # [1000.20.0](https://github.com/malaporte/nopecode/compare/v1000.19.6...v1000.20.0) (2026-04-03)
 
 
